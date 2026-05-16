@@ -26,7 +26,7 @@ let gameIsOpen = false;
 
 function openGame(game) {
     overlayTitle.textContent = game.folder;
-    gameFrame.src = `${game.folder}/index.html`;
+    gameFrame.src = `${encodeURIComponent(game.folder)}/index.html`;
     overlay.classList.remove("hidden");
     gameIsOpen = true;
 }
