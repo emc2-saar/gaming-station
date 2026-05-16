@@ -7,8 +7,8 @@
  */
 const games = [
     { folder: "Doodle Jump", icon: "🐸" },
+    { folder: "Snake", icon: "🐍" },
     // Weitere Spiele hier eintragen, z.B.:
-    // { folder: "Snake", icon: "🐍" },
     // { folder: "Tetris", icon: "🧱" },
 ];
 
