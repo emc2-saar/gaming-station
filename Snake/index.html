@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Courier New', monospace;
+        }
+
+        .game-container {
+            background: #2c3e50;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            color: #ecf0f1;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .score, .high-score {
+            background: #34495e;
+            padding: 5px 15px;
+            border-radius: 5px;
+        }
+
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .mode-btn {
+            padding: 8px 20px;
+            font-size: 14px;
+            background: #34495e;
+            color: #ecf0f1;
+            border: 2px solid #34495e;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+        }
+
+        .mode-btn:hover {
+            background: #3498db;
+            border-color: #3498db;
+        }
+
+        .mode-btn.active {
+            background: #3498db;
+            border-color: #2980b9;
+        }
+
+        canvas {
+            display: block;
+            background: #1a1a1a;
+            border: 3px solid #3498db;
+            border-radius: 5px;
+        }
+
+        .controls {
+            color: #ecf0f1;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .ai-info {
+            color: #f39c12;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .ai-info.visible {
+            display: block;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #e74c3c;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+            z-index: 10;
+        }
+
+        .game-over h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .game-over p {
+            font-size: 18px;
+            color: #ecf0f1;
+            margin-bottom: 10px;
+        }
+
+        .game-over .ai-played {
+            color: #f39c12;
+            font-style: italic;
+        }
+
+        .game-over button {
+            margin-top: 20px;
+            padding: 10px 30px;
+            font-size: 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+
+        .game-over button:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🐍 SNAKE</h1>
+            <div class="mode-selector">
+                <button class="mode-btn active" id="manualModeBtn">🎮 Manual</button>
+                <button class="mode-btn" id="aiModeBtn">🤖 AI Mode</button>
+            </div>
+            <div class="score-board">
+                <div class="score">Score: <span id="score">0</span></div>
+                <div class="high-score">High: <span id="high-score">0</span></div>
+            </div>
+        </div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div class="controls">
+            <div id="manualControls">Use Arrow Keys to Control | Press Space to Pause</div>
+            <div class="ai-info" id="aiInfo">🤖 AI is playing automatically | Press Space to Pause</div>
+        </div>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <h2>GAME OVER!</h2>
+        <p class="ai-played" id="aiPlayedMsg" style="display: none;">🤖 AI played this game</p>
+        <p>Your Score: <span id="final-score">0</span></p>
+        <p>High Score: <span id="final-high-score">0</span></p>
+        <button id="restartBtn">Play Again</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('high-score');
+        const gameOverElement = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('final-score');
+        const finalHighScoreElement = document.getElementById('final-high-score');
+        const restartBtn = document.getElementById('restartBtn');
+        const manualModeBtn = document.getElementById('manualModeBtn');
+        const aiModeBtn = document.getElementById('aiModeBtn');
+        const manualControls = document.getElementById('manualControls');
+        const aiInfo = document.getElementById('aiInfo');
+        const aiPlayedMsg = document.getElementById('aiPlayedMsg');
+
+        // Game constants
+        const GRID_SIZE = 20;
+        const TILE_COUNT = canvas.width / GRID_SIZE;
+        const GAME_SPEED = 100;
+        const AI_GAME_SPEED = 30; // Very fast for AI
+
+        // Game variables
+        let snake = [];
+        let foodX = 0;
+        let foodY = 0;
+        let velocityX = 1;
+        let velocityY = 0;
+        let score = 0;
+        let highScore = parseInt(localStorage.getItem('snakeHighScore')) || 0;
+        let gameLoop = null;
+        let gameRunning = false;
+        let gamePaused = false;
+        let aiMode = false;
+
+        // Hamiltonian cycle - a path that visits every cell and returns to start
+        let cycleIndex = []; // 2D array storing the index of each cell in the cycle
+
+        // Generate a true Hamiltonian cycle for the grid
+        function generateHamiltonianCycle() {
+            cycleIndex = Array(TILE_COUNT).fill(null).map(() => Array(TILE_COUNT).fill(-1));
+            
+            let index = 0;
+            
+            // Create a cycle using a snake-like pattern with a return path
+            // For even-sized grids, we can use a simple pattern:
+            // Go right on first row (leaving first column), down, zigzag up, then down first column
+            
+            // Start at (1, 0) and go right
+            // Row 0: go right from x=1 to x=TILE_COUNT-1
+            for (let x = 1; x < TILE_COUNT; x++) {
+                cycleIndex[0][x] = index++;
+            }
+            
+            // Now zigzag down
+            for (let y = 1; y < TILE_COUNT; y++) {
+                if (y % 2 === 1) {
+                    // Go left from x=TILE_COUNT-1 to x=1
+                    for (let x = TILE_COUNT - 1; x >= 1; x--) {
+                        cycleIndex[y][x] = index++;
+                    }
+                } else {
+                    // Go right from x=1 to x=TILE_COUNT-1
+                    for (let x = 1; x < TILE_COUNT; x++) {
+                        cycleIndex[y][x] = index++;
+                    }
+                }
+            }
+            
+            // Go up the first column from bottom to top
+            for (let y = TILE_COUNT - 1; y >= 0; y--) {
+                cycleIndex[y][0] = index++;
+            }
+            
+            // Verify cycle is complete (should equal TILE_COUNT * TILE_COUNT)
+            console.log("Cycle length:", index); // Should be 400 for 20x20
+        }
+
+        // Get the next cell in the Hamiltonian cycle
+        function getNextCycleCell(x, y) {
+            const currentIdx = cycleIndex[y][x];
+            const nextIdx = (currentIdx + 1) % (TILE_COUNT * TILE_COUNT);
+            
+            // Find the cell with this index
+            for (let ny = 0; ny < TILE_COUNT; ny++) {
+                for (let nx = 0; nx < TILE_COUNT; nx++) {
+                    if (cycleIndex[ny][nx] === nextIdx) {
+                        return { x: nx, y: ny };
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Get distance along cycle from one index to another
+        function getCycleDistance(fromIdx, toIdx) {
+            const total = TILE_COUNT * TILE_COUNT;
+            if (toIdx >= fromIdx) {
+                return toIdx - fromIdx;
+            }
+            return total - fromIdx + toIdx;
+        }
+
+        // Check if we can safely take a shortcut
+        function canTakeShortcut(newX, newY) {
+            const head = snake[0];
+            const tail = snake[snake.length - 1];
+            
+            const headIdx = cycleIndex[head.y][head.x];
+            const newIdx = cycleIndex[newY][newX];
+            const tailIdx = cycleIndex[tail.y][tail.x];
+            const foodIdx = cycleIndex[foodY][foodX];
+            
+            // Distance from new position to tail along cycle
+            const newToTail = getCycleDistance(newIdx, tailIdx);
+            
+            // We need at least enough space for the snake body
+            // The snake body will occupy newToTail cells after we move
+            // We need: newToTail > snake.length
+            
+            // Also check if we're not jumping over the tail
+            const headToNew = getCycleDistance(headIdx, newIdx);
+            const headToTail = getCycleDistance(headIdx, tailIdx);
+            
+            // Safe if: newToTail > snake.length and we don't jump over tail
+            if (headToNew < headToTail && newToTail > snake.length) {
+                return true;
+            }
+            
+            return false;
+        }
+
+        // AI decision making using Hamiltonian cycle with shortcuts
+        function aiDecide() {
+            const head = snake[0];
+            const tail = snake[snake.length - 1];
+            
+            const headIdx = cycleIndex[head.y][head.x];
+            const foodIdx = cycleIndex[foodY][foodX];
+            const tailIdx = cycleIndex[tail.y][tail.x];
+            
+            // Get the next cell in the cycle (guaranteed safe)
+            const nextCycleCell = getNextCycleCell(head.x, head.y);
+            
+            // Try to find shortcuts to food
+            const directions = [
+                { dx: 0, dy: -1 },
+                { dx: 0, dy: 1 },
+                { dx: -1, dy: 0 },
+                { dx: 1, dy: 0 }
+            ];
+            
+            // Filter out reverse direction and unsafe moves
+            const validMoves = directions.filter(dir => {
+                // Can't reverse
+                if (dir.dx === -velocityX && dir.dy === -velocityY) return false;
+                
+                const newX = head.x + dir.dx;
+                const newY = head.y + dir.dy;
+                
+                // Must be in bounds
+                if (newX < 0 || newX >= TILE_COUNT || newY < 0 || newY >= TILE_COUNT) return false;
+                
+                // Must not hit snake
+                for (let i = 0; i < snake.length - 1; i++) {
+                    if (snake[i].x === newX && snake[i].y === newY) return false;
+                }
+                
+                return true;
+            });
+            
+            // Try to take shortcut to food if safe
+            for (const dir of validMoves) {
+                const newX = head.x + dir.dx;
+                const newY = head.y + dir.dy;
+                const newIdx = cycleIndex[newY][newX];
+                
+                // Check if this move gets us closer to food and is safe
+                const currentDistToFood = getCycleDistance(headIdx, foodIdx);
+                const newDistToFood = getCycleDistance(newIdx, foodIdx);
+                
+                if (newDistToFood < currentDistToFood && canTakeShortcut(newX, newY)) {
+                    velocityX = dir.dx;
+                    velocityY = dir.dy;
+                    return;
+                }
+            }
+            
+            // Default: follow the Hamiltonian cycle
+            if (nextCycleCell) {
+                velocityX = nextCycleCell.x - head.x;
+                velocityY = nextCycleCell.y - head.y;
+            }
+        }
+
+        // Mode selection
+        manualModeBtn.addEventListener('click', () => {
+            if (!aiMode) return;
+            aiMode = false;
+            manualModeBtn.classList.add('active');
+            aiModeBtn.classList.remove('active');
+            manualControls.style.display = 'block';
+            aiInfo.classList.remove('visible');
+            initGame();
+        });
+
+        aiModeBtn.addEventListener('click', () => {
+            if (aiMode) return;
+            aiMode = true;
+            aiModeBtn.classList.add('active');
+            manualModeBtn.classList.remove('active');
+            manualControls.style.display = 'none';
+            aiInfo.classList.add('visible');
+            initGame();
+        });
+
+        // Initialize game
+        function initGame() {
+            // Generate Hamiltonian cycle
+            generateHamiltonianCycle();
+            
+            // Initialize snake - start at position (1, 0) which is the start of our cycle
+            snake = [
+                { x: 3, y: 0 },
+                { x: 2, y: 0 },
+                { x: 1, y: 0 }
+            ];
+
+            // Initial direction (moving right along the cycle)
+            velocityX = 1;
+            velocityY = 0;
+
+            // Generate first food
+            placeFood();
+
+            // Reset score
+            score = 0;
+            scoreElement.textContent = score;
+            highScoreElement.textContent = highScore;
+
+            // Hide game over screen
+            gameOverElement.style.display = 'none';
+
+            // Start game
+            gameRunning = true;
+            gamePaused = false;
+            
+            // Clear any existing game loop
+            if (gameLoop) {
+                clearInterval(gameLoop);
+            }
+            
+            // Draw initial state
+            draw();
+            
+            // Start game loop (faster for AI mode)
+            const speed = aiMode ? AI_GAME_SPEED : GAME_SPEED;
+            gameLoop = setInterval(update, speed);
+        }
+
+        // Place food at random position
+        function placeFood() {
+            let attempts = 0;
+            do {
+                foodX = Math.floor(Math.random() * TILE_COUNT);
+                foodY = Math.floor(Math.random() * TILE_COUNT);
+                attempts++;
+            } while (snake.some(s => s.x === foodX && s.y === foodY) && attempts < 1000);
+        }
+
+        // Update game state
+        function update() {
+            if (!gameRunning || gamePaused) return;
+
+            // AI makes decision before moving
+            if (aiMode) {
+                aiDecide();
+            }
+
+            // Calculate new head position
+            const newHeadX = snake[0].x + velocityX;
+            const newHeadY = snake[0].y + velocityY;
+
+            // Check wall collision
+            if (newHeadX < 0 || newHeadX >= TILE_COUNT || 
+                newHeadY < 0 || newHeadY >= TILE_COUNT) {
+                endGame();
+                return;
+            }
+
+            // Check self collision
+            for (let segment of snake) {
+                if (segment.x === newHeadX && segment.y === newHeadY) {
+                    endGame();
+                    return;
+                }
+            }
+
+            // Add new head
+            snake.unshift({ x: newHeadX, y: newHeadY });
+
+            // Check if snake ate food
+            if (newHeadX === foodX && newHeadY === foodY) {
+                score += 10;
+                scoreElement.textContent = score;
+                
+                if (score > highScore) {
+                    highScore = score;
+                    highScoreElement.textContent = highScore;
+                    localStorage.setItem('snakeHighScore', highScore);
+                }
+                
+                placeFood();
+            } else {
+                // Remove tail if no food eaten
+                snake.pop();
+            }
+
+            // Draw everything
+            draw();
+        }
+
+        // Draw game
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            ctx.strokeStyle = '#2a2a2a';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= TILE_COUNT; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * GRID_SIZE, 0);
+                ctx.lineTo(i * GRID_SIZE, canvas.height);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(0, i * GRID_SIZE);
+                ctx.lineTo(canvas.width, i * GRID_SIZE);
+                ctx.stroke();
+            }
+
+            // Draw snake
+            for (let i = 0; i < snake.length; i++) {
+                const segment = snake[i];
+                // Head is brighter, AI snake is cyan/blue
+                if (aiMode) {
+                    ctx.fillStyle = i === 0 ? '#00d4ff' : '#0099cc';
+                } else {
+                    ctx.fillStyle = i === 0 ? '#2ecc71' : '#27ae60';
+                }
+                ctx.fillRect(
+                    segment.x * GRID_SIZE + 1,
+                    segment.y * GRID_SIZE + 1,
+                    GRID_SIZE - 2,
+                    GRID_SIZE - 2
+                );
+
+                // Add border for classic look
+                ctx.strokeStyle = aiMode ? '#006699' : '#1a5928';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(
+                    segment.x * GRID_SIZE + 1,
+                    segment.y * GRID_SIZE + 1,
+                    GRID_SIZE - 2,
+                    GRID_SIZE - 2
+                );
+            }
+
+            // Draw food (red circle)
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(
+                foodX * GRID_SIZE + GRID_SIZE / 2,
+                foodY * GRID_SIZE + GRID_SIZE / 2,
+                GRID_SIZE / 2 - 2,
+                0,
+                Math.PI * 2
+            );
+            ctx.fill();
+
+            // Food border
+            ctx.strokeStyle = '#c0392b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // End game
+        function endGame() {
+            gameRunning = false;
+            if (gameLoop) {
+                clearInterval(gameLoop);
+                gameLoop = null;
+            }
+            
+            finalScoreElement.textContent = score;
+            finalHighScoreElement.textContent = highScore;
+            aiPlayedMsg.style.display = aiMode ? 'block' : 'none';
+            gameOverElement.style.display = 'block';
+        }
+
+        // Handle keyboard input
+        document.addEventListener('keydown', (e) => {
+            // Prevent default arrow key behavior
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                e.preventDefault();
+            }
+
+            // Pause/Resume with spacebar (works in both modes)
+            if (e.key === ' ') {
+                gamePaused = !gamePaused;
+                return;
+            }
+
+            // Manual controls only work in manual mode
+            if (aiMode || !gameRunning) return;
+
+            // Change direction (prevent 180-degree turns)
+            switch (e.key) {
+                case 'ArrowUp':
+                    if (velocityY === 0) {
+                        velocityX = 0;
+                        velocityY = -1;
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (velocityY === 0) {
+                        velocityX = 0;
+                        velocityY = 1;
+                    }
+                    break;
+                case 'ArrowLeft':
+                    if (velocityX === 0) {
+                        velocityX = -1;
+                        velocityY = 0;
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (velocityX === 0) {
+                        velocityX = 1;
+                        velocityY = 0;
+                    }
+                    break;
+            }
+        });
+
+        // Restart game button
+        restartBtn.addEventListener('click', () => {
+            initGame();
+        });
+
+        // Start game when page loads
+        window.addEventListener('load', () => {
+            highScoreElement.textContent = highScore;
+            initGame();
+        });
+    </script>
+</body>
+</html>
