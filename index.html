@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaming Station – EmC² Saar e.V.</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header id="header">
+        <div class="brand">
+            <!-- EmC² Saar Logo-Atom als SVG -->
+            <svg class="logo-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="4" fill="#1a2744"/>
+                <ellipse cx="32" cy="32" rx="28" ry="10" stroke="#1a2744" stroke-width="2" fill="none"/>
+                <ellipse cx="32" cy="32" rx="28" ry="10" stroke="#1a2744" stroke-width="2" fill="none" transform="rotate(60 32 32)"/>
+                <ellipse cx="32" cy="32" rx="28" ry="10" stroke="#1a2744" stroke-width="2" fill="none" transform="rotate(120 32 32)"/>
+                <circle cx="10" cy="22" r="3" fill="#c4a96a"/>
+                <circle cx="54" cy="22" r="3" fill="#c4a96a"/>
+                <circle cx="32" cy="56" r="3" fill="#c4a96a"/>
+                <circle cx="18" cy="46" r="3" fill="#d4890a"/>
+                <circle cx="50" cy="42" r="3" fill="#d4890a"/>
+            </svg>
+            <span>EmC² Saar e.V.</span>
+        </div>
+        <h1>🎮 Gaming Station</h1>
+        <p class="subtitle">Wähle ein Spiel aus</p>
+    </header>
+    <main id="game-grid" class="game-grid">
+        <!-- Kacheln werden per JS generiert -->
+    </main>
+
+    <!-- Fullscreen iframe overlay für Spiele -->
+    <div id="game-overlay" class="game-overlay hidden">
+        <div class="overlay-bar">
+            <span id="overlay-title" class="overlay-title"></span>
+            <button id="btn-close" class="btn-close" aria-label="Spiel schließen">✕ Zurück</button>
+        </div>
+        <iframe id="game-frame" class="game-frame" src="" title="Spiel"></iframe>
+    </div>
+
+    <!-- Leiterbahnen SVG Hintergrund -->
+    <svg class="circuit-bg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" viewBox="0 0 1200 900">
+        <!-- Linke Seite -->
+        <path d="M0 80 H120 L140 100 H200" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="200" cy="100" r="4" fill="#b8cce0"/>
+        <path d="M0 160 H80 V220 H150" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="150" cy="220" r="4" fill="#b8cce0"/>
+        <circle cx="80" cy="160" r="3" fill="none" stroke="#b8cce0" stroke-width="2"/>
+        <path d="M0 320 H60 L80 340 V400 H130" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="130" cy="400" r="4" fill="#b8cce0"/>
+        <path d="M0 500 H100 V460 H160 L180 440" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="180" cy="440" r="4" fill="#b8cce0"/>
+        <path d="M0 650 H90 L110 630 H170 V580" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="170" cy="580" r="4" fill="#b8cce0"/>
+        <path d="M0 780 H70 V740 H140 L160 720" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="160" cy="720" r="4" fill="#b8cce0"/>
+        <circle cx="70" cy="780" r="3" fill="none" stroke="#b8cce0" stroke-width="2"/>
+
+        <!-- Rechte Seite -->
+        <path d="M1200 60 H1080 L1060 80 H1000" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="1000" cy="80" r="4" fill="#b8cce0"/>
+        <path d="M1200 200 H1100 V250 H1040" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="1040" cy="250" r="4" fill="#b8cce0"/>
+        <circle cx="1100" cy="200" r="3" fill="none" stroke="#b8cce0" stroke-width="2"/>
+        <path d="M1200 380 H1120 L1100 400 V450 H1050" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="1050" cy="450" r="4" fill="#b8cce0"/>
+        <path d="M1200 540 H1090 V500 H1030 L1010 480" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="1010" cy="480" r="4" fill="#b8cce0"/>
+        <path d="M1200 700 H1110 L1090 680 H1030 V630" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="1030" cy="630" r="4" fill="#b8cce0"/>
+        <path d="M1200 830 H1130 V790 H1060 L1040 770" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="1040" cy="770" r="4" fill="#b8cce0"/>
+        <circle cx="1130" cy="830" r="3" fill="none" stroke="#b8cce0" stroke-width="2"/>
+
+        <!-- Obere Kante -->
+        <path d="M400 0 V60 H450 L470 80" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="470" cy="80" r="4" fill="#b8cce0"/>
+        <path d="M700 0 V50 L720 70 H780" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="780" cy="70" r="4" fill="#b8cce0"/>
+        <path d="M950 0 V40 H900 L880 60" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="880" cy="60" r="4" fill="#b8cce0"/>
+
+        <!-- Untere Kante -->
+        <path d="M300 900 V840 H350 L370 820" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="370" cy="820" r="4" fill="#b8cce0"/>
+        <path d="M600 900 V850 L620 830 H680" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="680" cy="830" r="4" fill="#b8cce0"/>
+        <path d="M900 900 V860 H850 L830 840" stroke="#b8cce0" stroke-width="2" fill="none"/>
+        <circle cx="830" cy="840" r="4" fill="#b8cce0"/>
+
+        <!-- Zusätzliche Verbindungen -->
+        <path d="M200 100 L250 100 V150 H300 L320 170" stroke="#b8cce0" stroke-width="1.5" fill="none" opacity="0.6"/>
+        <circle cx="320" cy="170" r="3" fill="#b8cce0" opacity="0.6"/>
+        <path d="M1000 80 L960 80 V130 H910" stroke="#b8cce0" stroke-width="1.5" fill="none" opacity="0.6"/>
+        <circle cx="910" cy="130" r="3" fill="#b8cce0" opacity="0.6"/>
+    </svg>
+
+    <script src="app.js"></script>
+</body>
+</html>

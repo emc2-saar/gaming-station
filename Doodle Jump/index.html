@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Doodle Jump</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="score">0</div>
+        <div id="start-screen">
+            <h1>🐸 Doodle Jump</h1>
+            <p>Springe so hoch wie möglich!</p>
+            <p class="controls">⬅️ ➡️ Pfeiltasten oder A/D</p>
+            <button id="startBtn">Start</button>
+        </div>
+        <div id="game-over" class="hidden">
+            <h1>Game Over</h1>
+            <p>Score: <span id="final-score">0</span></p>
+            <button id="restartBtn">Nochmal!</button>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
