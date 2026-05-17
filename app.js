@@ -6,7 +6,7 @@
  *   - icon:   Emoji oder Symbol für die Kachel (optional, Standard: 🎮)
  */
 const games = [
-    { folder: "Doodle Jump", icon: "🐸" },
+    { folder: "Jump & Bounce", icon: "🐸" },
     { folder: "Snake", icon: "🐍" },
     { folder: "Bubbleshooter", icon: "🫧" },
     // Weitere Spiele hier eintragen, z.B.:
