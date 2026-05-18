@@ -433,21 +433,32 @@ function gameLoop(timestamp) {
 // Mobile Input-Feld
 const mobileInput = document.getElementById('mobileInput');
 
-// Tastatur-Eingabe
+// Eingabe NUR über das mobileInput-Feld synchronisieren
+mobileInput.addEventListener('input', () => {
+    if (state !== STATE_INPUT) return;
+    const cleaned = mobileInput.value.replace(/[^0-9]/g, '').substring(0, 8);
+    inputDate = cleaned;
+    mobileInput.value = cleaned;
+    cursorBlink = 0;
+});
+
+// Enter/Go auf der Tastatur (mobil + desktop)
+mobileInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && inputDate.length >= 4 && state === STATE_INPUT) {
+        e.preventDefault();
+        mobileInput.blur();
+        startSearch();
+    }
+});
+
+// Desktop: keydown nur für Neustart und wenn mobileInput NICHT fokussiert ist
 document.addEventListener('keydown', (e) => {
     if (state === STATE_INPUT) {
-        if (e.key >= '0' && e.key <= '9' && inputDate.length < 8) {
-            inputDate += e.key;
-            cursorBlink = 0;
-            mobileInput.value = inputDate;
-        } else if (e.key === 'Backspace') {
-            inputDate = inputDate.slice(0, -1);
-            cursorBlink = 0;
-            mobileInput.value = inputDate;
-        } else if (e.key === 'Enter' && inputDate.length >= 4) {
-            e.preventDefault();
-            mobileInput.blur();
-            startSearch();
+        // Wenn das mobileInput nicht fokussiert ist, fokussiere es
+        if (document.activeElement !== mobileInput) {
+            mobileInput.focus();
+            // Lass das Input-Feld die Eingabe verarbeiten
+            return;
         }
     } else if (state === STATE_FOUND || state === STATE_NOT_FOUND) {
         if (e.code === 'Space' || e.key === 'Enter') {
@@ -457,26 +468,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Mobile: Input-Feld synchronisieren
-mobileInput.addEventListener('input', () => {
-    if (state !== STATE_INPUT) return;
-    // Nur Ziffern erlauben, max 8
-    const cleaned = mobileInput.value.replace(/[^0-9]/g, '').substring(0, 8);
-    inputDate = cleaned;
-    mobileInput.value = cleaned;
-    cursorBlink = 0;
-});
-
-// Mobile: Enter/Go auf der Tastatur
-mobileInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && inputDate.length >= 4 && state === STATE_INPUT) {
-        e.preventDefault();
-        mobileInput.blur();
-        startSearch();
-    }
-});
-
-// Canvas-Touch: Fokus auf Input setzen (öffnet mobile Tastatur)
+// Canvas-Touch/Click: Fokus auf Input setzen (öffnet mobile Tastatur)
 canvas.addEventListener('click', () => {
     if (state === STATE_INPUT) {
         mobileInput.value = inputDate;
@@ -486,7 +478,6 @@ canvas.addEventListener('click', () => {
     }
 });
 
-// Auch bei Touch
 canvas.addEventListener('touchstart', (e) => {
     if (state === STATE_INPUT) {
         e.preventDefault();
