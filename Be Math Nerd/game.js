@@ -244,6 +244,11 @@ function drawInputScreen() {
         ctx.fillText('⏎ Enter zum Suchen', canvas.width / 2, boxY + 120);
     }
     
+    // Touch-Hinweis
+    ctx.font = '14px Courier New';
+    ctx.fillStyle = '#606080';
+    ctx.fillText('📱 Tippe hier um die Tastatur zu öffnen', canvas.width / 2, boxY + 150);
+    
     // Info unten
     ctx.font = '12px Courier New';
     ctx.fillStyle = '#505070';
@@ -425,30 +430,70 @@ function gameLoop(timestamp) {
     requestAnimationFrame(gameLoop);
 }
 
+// Mobile Input-Feld
+const mobileInput = document.getElementById('mobileInput');
+
 // Tastatur-Eingabe
 document.addEventListener('keydown', (e) => {
     if (state === STATE_INPUT) {
         if (e.key >= '0' && e.key <= '9' && inputDate.length < 8) {
             inputDate += e.key;
             cursorBlink = 0;
+            mobileInput.value = inputDate;
         } else if (e.key === 'Backspace') {
             inputDate = inputDate.slice(0, -1);
             cursorBlink = 0;
+            mobileInput.value = inputDate;
         } else if (e.key === 'Enter' && inputDate.length >= 4) {
             e.preventDefault();
+            mobileInput.blur();
             startSearch();
         }
     } else if (state === STATE_FOUND || state === STATE_NOT_FOUND) {
-        if (e.code === 'Space') {
+        if (e.code === 'Space' || e.key === 'Enter') {
             e.preventDefault();
             resetGame();
         }
     }
 });
 
-// Touch-Support für Mobilgeräte
+// Mobile: Input-Feld synchronisieren
+mobileInput.addEventListener('input', () => {
+    if (state !== STATE_INPUT) return;
+    // Nur Ziffern erlauben, max 8
+    const cleaned = mobileInput.value.replace(/[^0-9]/g, '').substring(0, 8);
+    inputDate = cleaned;
+    mobileInput.value = cleaned;
+    cursorBlink = 0;
+});
+
+// Mobile: Enter/Go auf der Tastatur
+mobileInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && inputDate.length >= 4 && state === STATE_INPUT) {
+        e.preventDefault();
+        mobileInput.blur();
+        startSearch();
+    }
+});
+
+// Canvas-Touch: Fokus auf Input setzen (öffnet mobile Tastatur)
 canvas.addEventListener('click', () => {
-    if (state === STATE_FOUND || state === STATE_NOT_FOUND) {
+    if (state === STATE_INPUT) {
+        mobileInput.value = inputDate;
+        mobileInput.focus();
+    } else if (state === STATE_FOUND || state === STATE_NOT_FOUND) {
+        resetGame();
+    }
+});
+
+// Auch bei Touch
+canvas.addEventListener('touchstart', (e) => {
+    if (state === STATE_INPUT) {
+        e.preventDefault();
+        mobileInput.value = inputDate;
+        mobileInput.focus();
+    } else if (state === STATE_FOUND || state === STATE_NOT_FOUND) {
+        e.preventDefault();
         resetGame();
     }
 });
