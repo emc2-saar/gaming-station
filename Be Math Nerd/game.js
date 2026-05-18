@@ -17,10 +17,11 @@ let foundPosition = -1;
 
 // Scroll-Animation
 let scrollOffset = 0;
-let scrollSpeed = 0;
+let scrollStartTime = 0;
+const SCROLL_DURATION = 20; // Immer 20 Sekunden (in dt-Einheiten = 20 * 60 = 1200 frames bei 60fps)
+const SCROLL_DURATION_DT = 20 * TARGET_FPS; // 1200 dt-Einheiten
+let scrollElapsed = 0;
 let targetScrollPos = 0;
-let scrollPhase = 'accelerate'; // accelerate, cruise, decelerate, stop
-let scrollAccumulated = 0;
 
 // Anzeige-Parameter
 const DIGIT_WIDTH = 18;
@@ -70,9 +71,7 @@ function startSearch() {
             foundPosition = pos;
             state = STATE_SCROLLING;
             scrollOffset = 0;
-            scrollSpeed = 2;
-            scrollPhase = 'accelerate';
-            scrollAccumulated = 0;
+            scrollElapsed = 0;
             // Zielposition: Datum soll in der Mitte des Bildschirms sein
             targetScrollPos = (foundPosition - Math.floor(VISIBLE_DIGITS / 2) + fmt.length / 2) * DIGIT_WIDTH;
             return;
@@ -87,36 +86,25 @@ function update(dt) {
     cursorBlink += dt;
     
     if (state === STATE_SCROLLING) {
-        const distanceToTarget = targetScrollPos - scrollOffset;
+        scrollElapsed += dt;
         
-        if (scrollPhase === 'accelerate') {
-            scrollSpeed = Math.min(scrollSpeed + 2 * dt, 60);
-            if (scrollOffset > targetScrollPos * 0.3) {
-                scrollPhase = 'cruise';
-            }
-        } else if (scrollPhase === 'cruise') {
-            if (distanceToTarget < 800) {
-                scrollPhase = 'decelerate';
-            }
-        } else if (scrollPhase === 'decelerate') {
-            scrollSpeed = Math.max(scrollSpeed - 1.5 * dt, 2);
-            if (distanceToTarget < 50) {
-                scrollPhase = 'stop';
-            }
-        } else if (scrollPhase === 'stop') {
-            scrollSpeed = Math.max(scrollSpeed - 3 * dt, 0);
-            if (scrollSpeed <= 0.1 || scrollOffset >= targetScrollPos) {
-                scrollOffset = targetScrollPos;
-                scrollSpeed = 0;
-                state = STATE_FOUND;
-                createParticles();
-            }
-        }
+        // Fortschritt von 0 bis 1 über SCROLL_DURATION_DT
+        const t = Math.min(scrollElapsed / SCROLL_DURATION_DT, 1);
         
-        scrollOffset += scrollSpeed * dt;
-        if (scrollOffset > targetScrollPos && scrollPhase !== 'stop') {
+        // Easing: langsam starten, schnell in der Mitte, langsam am Ende
+        // Verwendung einer Ease-In-Out-Kurve (Sinusoidal)
+        const eased = t < 0.5
+            ? (1 - Math.cos(t * Math.PI)) / 2   // erste Hälfte: beschleunigen
+            : (1 - Math.cos(t * Math.PI)) / 2;  // zweite Hälfte: abbremsen
+        
+        // Alternativ: stärkere Kurve mit smootherstep für dramatischeren Effekt
+        // smootherstep: 6t^5 - 15t^4 + 10t^3
+        const smooth = t * t * t * (t * (t * 6 - 15) + 10);
+        
+        scrollOffset = smooth * targetScrollPos;
+        
+        if (t >= 1) {
             scrollOffset = targetScrollPos;
-            scrollSpeed = 0;
             state = STATE_FOUND;
             createParticles();
         }
@@ -420,7 +408,8 @@ function resetGame() {
     inputDate = '';
     foundPosition = -1;
     scrollOffset = 0;
-    scrollSpeed = 0;
+    scrollElapsed = 0;
+    targetScrollPos = 0;
     particles = [];
     cursorBlink = 0;
 }
