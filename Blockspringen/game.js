@@ -12,6 +12,10 @@ window.addEventListener('resize', () => {
     groundY = canvas.height - 100;
 });
 
+// Delta-Time Basis
+const TARGET_FPS = 60;
+let lastTime = 0;
+
 // Game state
 let gameRunning = false;
 let gameSpeed = 5;
@@ -119,7 +123,6 @@ function drawEnemy(enemy) {
     const ey = enemy.y;
 
     if (enemy.type === 'skeleton') {
-        // Skeleton enemy
         ctx.fillStyle = COLORS.skeleton;
         ctx.fillRect(ex + 6, ey + 16, 20, 20);
         ctx.fillStyle = COLORS.skeletonDark;
@@ -137,21 +140,18 @@ function drawEnemy(enemy) {
         ctx.fillRect(ex + 6, ey + 36, 9, 12);
         ctx.fillRect(ex + 17, ey + 36, 9, 12);
     } else {
-        // Slime enemy
         ctx.fillStyle = COLORS.slime;
         ctx.fillRect(ex + 4, ey + 8, 24, 24);
         ctx.fillRect(ex + 2, ey + 12, 28, 16);
         ctx.fillStyle = COLORS.slimeDark;
         ctx.fillRect(ex + 6, ey + 32, 8, 8);
         ctx.fillRect(ex + 18, ey + 32, 8, 8);
-        // Eyes
         ctx.fillStyle = '#fff';
         ctx.fillRect(ex + 8, ey + 14, 7, 7);
         ctx.fillRect(ex + 18, ey + 14, 7, 7);
         ctx.fillStyle = '#000';
         ctx.fillRect(ex + 11, ey + 16, 4, 4);
         ctx.fillRect(ex + 21, ey + 16, 4, 4);
-        // Mouth
         ctx.fillStyle = COLORS.slimeDark;
         ctx.fillRect(ex + 10, ey + 25, 12, 3);
     }
@@ -225,13 +225,13 @@ function addParticles(x, y, color, count) {
     }
 }
 
-function updateParticles() {
+function updateParticles(dt) {
     for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.3;
-        p.life--;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 0.3 * dt;
+        p.life -= dt;
         if (p.life <= 0) {
             particles.splice(i, 1);
         }
@@ -240,7 +240,7 @@ function updateParticles() {
 
 function drawParticles() {
     particles.forEach(p => {
-        ctx.globalAlpha = p.life / 50;
+        ctx.globalAlpha = Math.max(0, p.life / 50);
         ctx.fillStyle = p.color;
         ctx.fillRect(p.x, p.y, p.size, p.size);
     });
@@ -313,22 +313,27 @@ function initGame() {
     distance = 0;
     gameSpeed = 5;
     frameCount = 0;
+    lastTime = 0;
 
     for (let i = 0; i < 5; i++) {
         spawnPlatform();
     }
 }
 
-function update() {
+// Accumulator für zeitbasiertes Spawning
+let spawnEnemyAccum = 0;
+let spawnDiamondAccum = 0;
+
+function update(dt) {
     if (!gameRunning) return;
 
-    frameCount++;
-    distance += gameSpeed * 0.1;
+    frameCount += dt;
+    distance += gameSpeed * 0.1 * dt;
     gameSpeed = 5 + distance * 0.005;
 
     // Player physics
-    player.vy += GRAVITY;
-    player.y += player.vy;
+    player.vy += GRAVITY * dt;
+    player.y += player.vy * dt;
     player.grounded = false;
 
     // Ground collision
@@ -345,7 +350,7 @@ function update() {
             player.x + player.width > p.x &&
             player.x < p.x + p.width &&
             player.y + player.height >= p.y &&
-            player.y + player.height <= p.y + p.height + player.vy + 2
+            player.y + player.height <= p.y + p.height + player.vy * dt + 2
         ) {
             player.y = p.y - player.height;
             player.vy = 0;
@@ -354,7 +359,7 @@ function update() {
     });
 
     // Move platforms
-    platforms.forEach(p => (p.x -= gameSpeed));
+    platforms.forEach(p => (p.x -= gameSpeed * dt));
     platforms = platforms.filter(p => p.x + p.width > -50);
     if (
         platforms.length < 5 ||
@@ -364,16 +369,23 @@ function update() {
     }
 
     // Move & spawn enemies
-    enemies.forEach(e => (e.x -= gameSpeed));
+    enemies.forEach(e => (e.x -= gameSpeed * dt));
     enemies = enemies.filter(e => e.x + e.width > -50);
-    if (frameCount % Math.max(60, 150 - Math.floor(distance * 0.3)) === 0) {
+
+    const enemySpawnInterval = Math.max(60, 150 - Math.floor(distance * 0.3));
+    spawnEnemyAccum += dt;
+    if (spawnEnemyAccum >= enemySpawnInterval) {
+        spawnEnemyAccum = 0;
         spawnEnemy();
     }
 
     // Move & spawn diamonds
-    diamondItems.forEach(d => (d.x -= gameSpeed));
+    diamondItems.forEach(d => (d.x -= gameSpeed * dt));
     diamondItems = diamondItems.filter(d => d.x + d.width > -50 && !d.collected);
-    if (frameCount % 90 === 0) {
+
+    spawnDiamondAccum += dt;
+    if (spawnDiamondAccum >= 90) {
+        spawnDiamondAccum = 0;
         spawnDiamond();
     }
 
@@ -392,19 +404,18 @@ function update() {
         const e = enemies[i];
         if (collides(player, e)) {
             if (player.vy > 0 && player.y + player.height - e.y < 15) {
-                // Stomp enemy
                 enemies.splice(i, 1);
                 player.vy = JUMP_FORCE * 0.7;
                 addParticles(e.x + 16, e.y + 24, '#4CAF50', 10);
                 i--;
             } else {
-                gameOver();
+                gameOverFunc();
                 return;
             }
         }
     }
 
-    updateParticles();
+    updateParticles(dt);
 
     // Update UI
     document.getElementById('diamonds').textContent = diamonds;
@@ -423,8 +434,18 @@ function draw() {
     drawParticles();
 }
 
-function gameLoop() {
-    update();
+function gameLoop(timestamp) {
+    if (!gameRunning) return;
+
+    // Delta-Time berechnen
+    if (lastTime === 0) lastTime = timestamp;
+    const elapsed = timestamp - lastTime;
+    lastTime = timestamp;
+
+    // dt normalisiert auf 60 FPS (dt=1 bei 60fps, dt=2 bei 30fps, dt=0.5 bei 120fps)
+    const dt = Math.min(elapsed / (1000 / TARGET_FPS), 3);
+
+    update(dt);
     draw();
     requestAnimationFrame(gameLoop);
 }
@@ -437,7 +458,7 @@ function jump() {
     }
 }
 
-function gameOver() {
+function gameOverFunc() {
     gameRunning = false;
     document.getElementById('game-over-screen').style.display = 'flex';
     document.getElementById('final-score').innerHTML =
@@ -447,8 +468,11 @@ function gameOver() {
 function startGame() {
     document.getElementById('start-screen').style.display = 'none';
     document.getElementById('game-over-screen').style.display = 'none';
+    spawnEnemyAccum = 0;
+    spawnDiamondAccum = 0;
     initGame();
     gameRunning = true;
+    requestAnimationFrame(gameLoop);
 }
 
 // --- Controls ---
@@ -472,5 +496,12 @@ canvas.addEventListener('touchstart', (e) => {
 document.getElementById('start-btn').addEventListener('click', startGame);
 document.getElementById('restart-btn').addEventListener('click', startGame);
 
-// Start render loop
-gameLoop();
+// Start render loop (zeigt nur Hintergrund bis Start)
+function idleLoop(timestamp) {
+    if (gameRunning) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBackground();
+    drawPlayer();
+    requestAnimationFrame(idleLoop);
+}
+requestAnimationFrame(idleLoop);

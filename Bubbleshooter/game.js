@@ -13,6 +13,10 @@ const ROW_HEIGHT = BUBBLE_DIAMETER * 0.866; // sqrt(3)/2 for hex packing
 const SHOOT_SPEED = 12;
 const COLORS = ['#e94560', '#0f3460', '#00b4d8', '#06d6a0', '#ffd166', '#9b5de5'];
 
+// Delta-Time Basis
+const TARGET_FPS = 60;
+let lastTime = 0;
+
 // --- Game State ---
 let grid = [];
 let shooterBubble = null;
@@ -25,9 +29,9 @@ let animating = false;
 
 // --- Progressive difficulty ---
 let shotsFired = 0;
-let shotsUntilNewRow = 10; // starts at 10, then 5, 3, 2, 2, 2...
-let difficultyStage = 0;  // tracks which threshold we're at
-const DIFFICULTY_THRESHOLDS = [10, 5, 3, 2]; // after last, stays at 2
+let shotsUntilNewRow = 10;
+let difficultyStage = 0;
+const DIFFICULTY_THRESHOLDS = [10, 5, 3, 2];
 
 // --- Falling bubbles animation ---
 let fallingBubbles = [];
@@ -41,7 +45,6 @@ function initGrid() {
             grid[row][col] = null;
         }
     }
-    // Fill top rows with bubbles
     const fillRows = 5;
     for (let row = 0; row < fillRows; row++) {
         const maxCols = row % 2 === 0 ? COLS : COLS - 1;
@@ -88,8 +91,7 @@ function drawBubble(x, y, color, radius) {
     radius = radius || BUBBLE_RADIUS;
     ctx.beginPath();
     ctx.arc(x, y, radius - 1, 0, Math.PI * 2);
-    
-    // Gradient for 3D effect
+
     const gradient = ctx.createRadialGradient(x - radius * 0.3, y - radius * 0.3, radius * 0.1, x, y, radius);
     gradient.addColorStop(0, lightenColor(color, 60));
     gradient.addColorStop(1, color);
@@ -146,7 +148,7 @@ function drawShooter() {
         drawBubble(shooterX, shooterY, shooterBubble.color);
     }
 
-    // Draw next bubble (smaller, to the side)
+    // Draw next bubble
     if (nextBubble) {
         drawBubble(shooterX - 60, shooterY + 10, nextBubble.color, BUBBLE_RADIUS * 0.7);
         ctx.fillStyle = '#888';
@@ -154,7 +156,7 @@ function drawShooter() {
         ctx.fillText('Nächste', shooterX - 80, shooterY + 35);
     }
 
-    // Draw shots remaining until new row
+    // Draw shots remaining
     const shotsRemaining = shotsUntilNewRow - shotsFired;
     ctx.fillStyle = '#e94560';
     ctx.font = 'bold 13px sans-serif';
@@ -177,20 +179,16 @@ function drawFallingBubbles() {
     }
 }
 
-// --- Add a new row at the top, push everything down ---
+// --- Add a new row at the top ---
 function addRowFromTop() {
-    // Shift all rows down by 1
     for (let row = ROWS - 1; row > 0; row--) {
         grid[row] = grid[row - 1];
     }
-    // Create new top row
     grid[0] = [];
-    const maxCols = COLS; // row 0 is always even
+    const maxCols = COLS;
     for (let col = 0; col < maxCols; col++) {
         grid[0][col] = { color: COLORS[Math.floor(Math.random() * COLORS.length)] };
     }
-
-    // After shifting, check game over
     checkGameOver();
 }
 
@@ -212,18 +210,15 @@ function shoot() {
     shooterBubble = nextBubble;
     nextBubble = createBubble();
 
-    // Track shots for progressive difficulty
     shotsFired++;
     if (shotsFired >= shotsUntilNewRow) {
         shotsFired = 0;
-        // Move to next difficulty stage
         difficultyStage++;
         if (difficultyStage < DIFFICULTY_THRESHOLDS.length) {
             shotsUntilNewRow = DIFFICULTY_THRESHOLDS[difficultyStage];
         } else {
             shotsUntilNewRow = DIFFICULTY_THRESHOLDS[DIFFICULTY_THRESHOLDS.length - 1];
         }
-        // Add new row after a short delay (let the shot fly first)
         setTimeout(() => {
             if (!gameOver) {
                 addRowFromTop();
@@ -232,12 +227,12 @@ function shoot() {
     }
 }
 
-// --- Update shooting bubble ---
-function updateShootingBubble() {
+// --- Update shooting bubble (delta-time aware) ---
+function updateShootingBubble(dt) {
     if (!shootingBubble) return;
 
-    shootingBubble.x += shootingBubble.vx;
-    shootingBubble.y += shootingBubble.vy;
+    shootingBubble.x += shootingBubble.vx * dt;
+    shootingBubble.y += shootingBubble.vy * dt;
 
     // Wall bounce
     if (shootingBubble.x - BUBBLE_RADIUS <= 0 || shootingBubble.x + BUBBLE_RADIUS >= canvas.width) {
@@ -279,7 +274,6 @@ function snapBubble() {
     const coords = getGridCoords(shootingBubble.x, shootingBubble.y);
     let { row, col } = coords;
 
-    // Make sure the cell is empty, find nearest empty
     if (grid[row] && grid[row][col]) {
         const neighbors = getNeighbors(row, col);
         let bestDist = Infinity;
@@ -310,21 +304,16 @@ function snapBubble() {
     grid[row][col] = { color: shootingBubble.color };
     shootingBubble = null;
 
-    // Check for matches
     const matches = findMatches(row, col);
     if (matches.length >= 3) {
-        // Remove matched bubbles
         for (const [mr, mc] of matches) {
             grid[mr][mc] = null;
         }
         score += matches.length * 10;
         scoreEl.textContent = score;
-
-        // Remove floating bubbles
         removeFloating();
     }
 
-    // Check game over
     checkGameOver();
 }
 
@@ -377,7 +366,6 @@ function findMatches(row, col) {
 
 // --- Remove floating bubbles ---
 function removeFloating() {
-    // BFS from top row to find connected bubbles
     const connected = new Set();
     const queue = [];
 
@@ -404,7 +392,6 @@ function removeFloating() {
         }
     }
 
-    // Remove unconnected bubbles with falling animation
     let removed = 0;
     for (let row = 0; row < ROWS; row++) {
         const maxCols = row % 2 === 0 ? COLS : COLS - 1;
@@ -430,12 +417,12 @@ function removeFloating() {
     }
 }
 
-// --- Update falling bubbles ---
-function updateFallingBubbles() {
+// --- Update falling bubbles (delta-time aware) ---
+function updateFallingBubbles(dt) {
     for (let i = fallingBubbles.length - 1; i >= 0; i--) {
-        fallingBubbles[i].vy += 0.5;
-        fallingBubbles[i].y += fallingBubbles[i].vy;
-        fallingBubbles[i].radius *= 0.98;
+        fallingBubbles[i].vy += 0.5 * dt;
+        fallingBubbles[i].y += fallingBubbles[i].vy * dt;
+        fallingBubbles[i].radius *= Math.pow(0.98, dt);
         if (fallingBubbles[i].y > canvas.height + 50) {
             fallingBubbles.splice(i, 1);
         }
@@ -450,7 +437,6 @@ function checkGameOver() {
             return;
         }
     }
-    // Also check if row 10 has bubbles (close to shooter)
     for (let col = 0; col < COLS; col++) {
         if (grid[ROWS - 2] && grid[ROWS - 2][col]) {
             gameOver = true;
@@ -499,19 +485,26 @@ function drawWin() {
     ctx.textAlign = 'start';
 }
 
-// --- Main game loop ---
-function gameLoop() {
+// --- Main game loop (delta-time) ---
+function gameLoopFn(timestamp) {
+    // Delta-Time berechnen
+    if (lastTime === 0) lastTime = timestamp;
+    const elapsed = timestamp - lastTime;
+    lastTime = timestamp;
+
+    // dt normalisiert auf 60 FPS
+    const dt = Math.min(elapsed / (1000 / TARGET_FPS), 3);
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Poll keyboard input
-    updateKeyboardInput();
-    // Poll gamepad input
-    updateGamepadInput();
+    // Poll input
+    updateKeyboardInput(dt);
+    updateGamepadInput(dt);
 
     drawGrid();
-    updateShootingBubble();
+    updateShootingBubble(dt);
     drawShootingBubble();
-    updateFallingBubbles();
+    updateFallingBubbles(dt);
     drawFallingBubbles();
     drawShooter();
 
@@ -521,17 +514,16 @@ function gameLoop() {
         drawWin();
     }
 
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame(gameLoopFn);
 }
 
 // --- Keyboard State ---
 const keys = {};
-const AIM_SPEED = 0.03; // radians per frame
+const AIM_SPEED = 0.03; // radians per frame at 60fps
 
 document.addEventListener('keydown', (e) => {
     keys[e.code] = true;
 
-    // Shoot with Space or Enter
     if (e.code === 'Space' || e.code === 'Enter') {
         e.preventDefault();
         if (gameOver || checkWin()) {
@@ -546,18 +538,16 @@ document.addEventListener('keyup', (e) => {
     keys[e.code] = false;
 });
 
-function updateKeyboardInput() {
+function updateKeyboardInput(dt) {
     if (gameOver) return;
 
-    // Left/Right arrow or A/D to aim
     if (keys['ArrowLeft'] || keys['KeyA']) {
-        aimAngle -= AIM_SPEED;
+        aimAngle -= AIM_SPEED * dt;
     }
     if (keys['ArrowRight'] || keys['KeyD']) {
-        aimAngle += AIM_SPEED;
+        aimAngle += AIM_SPEED * dt;
     }
 
-    // Clamp angle to upward direction (-170° to -10°)
     const minAngle = -Math.PI + 0.1;
     const maxAngle = -0.1;
     aimAngle = Math.max(minAngle, Math.min(maxAngle, aimAngle));
@@ -567,48 +557,45 @@ function updateKeyboardInput() {
 let gamepadShootCooldown = 0;
 let gamepadRestartCooldown = 0;
 
-function updateGamepadInput() {
+function updateGamepadInput(dt) {
     const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
     if (!gamepads) return;
 
     for (const gp of gamepads) {
         if (!gp) continue;
 
-        // Left stick horizontal or D-pad for aiming
         const leftStickX = gp.axes[0] || 0;
         const deadzone = 0.15;
 
         if (Math.abs(leftStickX) > deadzone) {
-            aimAngle += leftStickX * AIM_SPEED * 1.5;
+            aimAngle += leftStickX * AIM_SPEED * 1.5 * dt;
             const minAngle = -Math.PI + 0.1;
             const maxAngle = -0.1;
             aimAngle = Math.max(minAngle, Math.min(maxAngle, aimAngle));
         }
 
-        // D-pad left/right (buttons 14/15)
         if (gp.buttons[14] && gp.buttons[14].pressed) {
-            aimAngle -= AIM_SPEED;
+            aimAngle -= AIM_SPEED * dt;
             const minAngle = -Math.PI + 0.1;
             aimAngle = Math.max(minAngle, aimAngle);
         }
         if (gp.buttons[15] && gp.buttons[15].pressed) {
-            aimAngle += AIM_SPEED;
+            aimAngle += AIM_SPEED * dt;
             const maxAngle = -0.1;
             aimAngle = Math.min(maxAngle, aimAngle);
         }
 
-        // Cooldown timers (prevent rapid fire)
-        if (gamepadShootCooldown > 0) gamepadShootCooldown--;
-        if (gamepadRestartCooldown > 0) gamepadRestartCooldown--;
+        // Cooldowns (dt-basiert)
+        if (gamepadShootCooldown > 0) gamepadShootCooldown -= dt;
+        if (gamepadRestartCooldown > 0) gamepadRestartCooldown -= dt;
 
-        // A button (0) or Right Trigger (7) to shoot
         const shootPressed = (gp.buttons[0] && gp.buttons[0].pressed) ||
                              (gp.buttons[7] && gp.buttons[7].value > 0.5);
 
-        if (shootPressed && gamepadShootCooldown === 0) {
-            gamepadShootCooldown = 15; // ~250ms at 60fps
+        if (shootPressed && gamepadShootCooldown <= 0) {
+            gamepadShootCooldown = 15;
             if (gameOver || checkWin()) {
-                if (gamepadRestartCooldown === 0) {
+                if (gamepadRestartCooldown <= 0) {
                     gamepadRestartCooldown = 30;
                     restartGame();
                 }
@@ -617,7 +604,6 @@ function updateGamepadInput() {
             }
         }
 
-        // Only use first connected gamepad
         break;
     }
 }
@@ -631,6 +617,7 @@ function restartGame() {
     shotsFired = 0;
     shotsUntilNewRow = DIFFICULTY_THRESHOLDS[0];
     difficultyStage = 0;
+    lastTime = 0;
     initGrid();
     initShooter();
 }
@@ -644,7 +631,6 @@ canvas.addEventListener('mousemove', (e) => {
     const shooterX = canvas.width / 2;
     const shooterY = canvas.height - 50;
     const angle = Math.atan2(mouseY - shooterY, mouseX - shooterX);
-    // Limit angle to upward direction
     if (angle < -0.1 && angle > -Math.PI + 0.1) {
         aimAngle = angle;
     }
@@ -682,4 +668,4 @@ canvas.addEventListener('touchstart', (e) => {
 // --- Start Game ---
 initGrid();
 initShooter();
-gameLoop();
+requestAnimationFrame(gameLoopFn);

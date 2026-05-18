@@ -11,7 +11,8 @@ const restartBtn = document.getElementById('restartBtn');
 canvas.width = 400;
 canvas.height = 600;
 
-// Spielkonstanten
+// Spielkonstanten (ausgelegt für 60 FPS als Basis)
+const TARGET_FPS = 60;
 const GRAVITY = 0.5;
 const JUMP_FORCE = -12;
 const MOVE_SPEED = 6;
@@ -19,6 +20,7 @@ const PLATFORM_COUNT = 7;
 
 // Spielzustand
 let player, platforms, score, maxHeight, gameRunning, keys;
+let lastTime = 0;
 
 // Plattform-Typen
 const PLATFORM_NORMAL = 'normal';
@@ -40,6 +42,7 @@ function init() {
     score = 0;
     maxHeight = 0;
     keys = {};
+    lastTime = 0;
 
     // Startplattform direkt unter dem Spieler
     platforms.push(createPlatform(canvas.width / 2 - 35, canvas.height - 50, PLATFORM_NORMAL));
@@ -80,7 +83,7 @@ function getRandomPlatformType(difficulty) {
     return PLATFORM_BREAKING;
 }
 
-function update() {
+function update(dt) {
     if (!gameRunning) return;
 
     // Spieler-Bewegung (horizontal)
@@ -89,10 +92,10 @@ function update() {
     } else if (keys['ArrowRight'] || keys['KeyD']) {
         player.vx = MOVE_SPEED;
     } else {
-        player.vx *= 0.8; // Reibung
+        player.vx *= Math.pow(0.8, dt);
     }
 
-    player.x += player.vx;
+    player.x += player.vx * dt;
 
     // Wrap-around (Bildschirmränder)
     if (player.x + player.width < 0) {
@@ -102,8 +105,8 @@ function update() {
     }
 
     // Gravitation
-    player.vy += GRAVITY;
-    player.y += player.vy;
+    player.vy += GRAVITY * dt;
+    player.y += player.vy * dt;
 
     // Plattform-Kollision (nur beim Fallen)
     if (player.vy > 0) {
@@ -128,7 +131,7 @@ function update() {
     // Plattformen bewegen
     for (const platform of platforms) {
         if (platform.type === PLATFORM_MOVING && !platform.broken) {
-            platform.x += platform.speed;
+            platform.x += platform.speed * dt;
             if (platform.x <= 0 || platform.x + platform.width >= canvas.width) {
                 platform.speed *= -1;
             }
@@ -203,7 +206,7 @@ function draw() {
         ctx.restore();
     }
 
-    // Spieler zeichnen (Doodle-Charakter)
+    // Spieler zeichnen
     drawPlayer();
 }
 
@@ -237,13 +240,11 @@ function drawPlayer() {
     ctx.arc(x + w / 2 + 9 + eyeOffsetX, y + h / 2 - 5, 3, 0, Math.PI * 2);
     ctx.fill();
 
-    // Mund (lächeln wenn hoch, erschrocken wenn fällt)
+    // Mund
     ctx.beginPath();
     if (player.vy < 0) {
-        // Lächeln beim Springen
         ctx.arc(x + w / 2, y + h / 2 + 8, 6, 0, Math.PI);
     } else {
-        // O-Mund beim Fallen
         ctx.arc(x + w / 2, y + h / 2 + 8, 4, 0, Math.PI * 2);
     }
     ctx.strokeStyle = '#333';
@@ -261,12 +262,20 @@ function drawPlayer() {
     ctx.stroke();
 }
 
-function gameLoop() {
-    update();
+function gameLoop(timestamp) {
+    if (!gameRunning) return;
+
+    // Delta-Time berechnen (normalisiert auf 60 FPS)
+    if (lastTime === 0) lastTime = timestamp;
+    const elapsed = timestamp - lastTime;
+    lastTime = timestamp;
+
+    // dt = 1.0 bei 60 FPS, 2.0 bei 30 FPS, 0.5 bei 120 FPS
+    const dt = Math.min(elapsed / (1000 / TARGET_FPS), 3); // Cap bei 3 um Sprünge zu vermeiden
+
+    update(dt);
     draw();
-    if (gameRunning) {
-        requestAnimationFrame(gameLoop);
-    }
+    requestAnimationFrame(gameLoop);
 }
 
 function startGame() {
@@ -274,7 +283,8 @@ function startGame() {
     gameOverScreen.classList.add('hidden');
     init();
     gameRunning = true;
-    gameLoop();
+    lastTime = 0;
+    requestAnimationFrame(gameLoop);
 }
 
 function gameOver() {
@@ -325,7 +335,7 @@ canvas.addEventListener('touchend', () => {
 if (window.DeviceOrientationEvent) {
     window.addEventListener('deviceorientation', (e) => {
         if (!gameRunning) return;
-        const tilt = e.gamma; // -90 bis 90
+        const tilt = e.gamma;
         if (tilt > 5) {
             keys['ArrowRight'] = true;
             keys['ArrowLeft'] = false;
