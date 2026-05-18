@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stein für Stein</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen">
+            <h1>🀄 Stein für Stein</h1>
+            <p class="subtitle">Ein Paar-Such-Spiel mit gestapelten Steinen</p>
+            <div class="instructions">
+                <p><strong>So geht's:</strong></p>
+                <p>Klicke zwei gleiche, freie Steine an, um sie zu entfernen.</p>
+                <p>Ein Stein ist frei, wenn er links ODER rechts nicht blockiert ist und kein Stein auf ihm liegt.</p>
+                <p>Räume alle Steine ab, um zu gewinnen!</p>
+            </div>
+            <button id="btn-start" class="btn">Spiel starten</button>
+        </div>
+
+        <div id="game-screen" class="screen hidden">
+            <div id="hud">
+                <span id="pairs-left">Paare: 0</span>
+                <span id="timer">Zeit: 0:00</span>
+                <button id="btn-hint" class="btn-small">💡 Tipp</button>
+                <button id="btn-shuffle" class="btn-small">🔀 Mischen</button>
+            </div>
+            <div id="board-container">
+                <canvas id="gameCanvas"></canvas>
+            </div>
+        </div>
+
+        <div id="win-screen" class="screen hidden">
+            <h1>🎉 Gewonnen!</h1>
+            <p id="win-message"></p>
+            <button id="btn-restart-win" class="btn">Nochmal spielen</button>
+        </div>
+
+        <div id="lose-screen" class="screen hidden">
+            <h1>😞 Keine Züge mehr!</h1>
+            <p>Es gibt keine freien Paare mehr.</p>
+            <button id="btn-restart-lose" class="btn">Nochmal spielen</button>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
