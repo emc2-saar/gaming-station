@@ -12,6 +12,7 @@ const games = [
     { folder: "Blockspringen", icon: "🧱" },
     { folder: "Be Math Nerd", icon: "π" },
     { folder: "SteinFuerStein", icon: "🀄" },
+    { folder: "CubeStack", icon: "⛏" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
