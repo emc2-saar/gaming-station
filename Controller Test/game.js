@@ -233,6 +233,21 @@ document.addEventListener('keydown', (e) => {
     lastAction = `Tastatur: ${e.key}`;
 });
 
+// Gamepad-Events loggen
+window.addEventListener('gamepadconnected', (e) => {
+    controllerConnected = true;
+    controllerName = e.gamepad.id;
+    lastAction = `VERBUNDEN: ${e.gamepad.id}`;
+    console.log('Gamepad connected:', e.gamepad);
+});
+
+window.addEventListener('gamepaddisconnected', (e) => {
+    controllerConnected = false;
+    controllerName = 'Controller getrennt';
+    lastAction = 'GETRENNT';
+    console.log('Gamepad disconnected:', e.gamepad);
+});
+
 function gameLoop() {
     update();
     draw();
