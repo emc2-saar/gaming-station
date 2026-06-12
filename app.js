@@ -13,6 +13,7 @@ const games = [
     { folder: "Be Math Nerd", icon: "π" },
     { folder: "SteinFuerStein", icon: "🀄" },
     { folder: "CubeStack", icon: "⛏" },
+    { folder: "Escape Game", icon: "🏃" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
