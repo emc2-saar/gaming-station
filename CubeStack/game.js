@@ -769,6 +769,95 @@ canvas.addEventListener('touchend', (e) => {
     }
 });
 
+// === GAMEPAD SUPPORT (Nintendo Switch Pro Controller kompatibel) ===
+const AXIS_THRESHOLD = 0.5;
+const gpState = { left: false, right: false, down: false, up: false, a: false, b: false, hardDrop: false };
+
+function pollGamepad() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let gp = null;
+    for (const pad of gamepads) {
+        if (pad && pad.connected) { gp = pad; break; }
+    }
+    if (!gp) return;
+
+    const left = gp.buttons[14]?.pressed || gp.axes[0] < -AXIS_THRESHOLD;
+    const right = gp.buttons[15]?.pressed || gp.axes[0] > AXIS_THRESHOLD;
+    const down = gp.buttons[13]?.pressed || gp.axes[1] > AXIS_THRESHOLD;
+    const up = gp.buttons[12]?.pressed || gp.axes[1] < -AXIS_THRESHOLD;
+    const aButton = gp.buttons[0]?.pressed || gp.buttons[1]?.pressed; // A oder B = Bestätigen/Drehen
+    const hardDropBtn = gp.buttons[3]?.pressed || gp.buttons[2]?.pressed; // X oder Y = Hard Drop
+
+    if (!gameRunning && !gameOverState) {
+        if (aButton && !gpState.a) startGame();
+        gpState.a = aButton;
+        return;
+    }
+    if (gameOverState) {
+        if (aButton && !gpState.a) startGame();
+        gpState.a = aButton;
+        return;
+    }
+
+    // Bewegen
+    if (left && !gpState.left) {
+        if (!collides(currentPiece.shape, currentPiece.x - 1, currentPiece.y)) currentPiece.x--;
+    }
+    if (right && !gpState.right) {
+        if (!collides(currentPiece.shape, currentPiece.x + 1, currentPiece.y)) currentPiece.x++;
+    }
+
+    // Drehen
+    if (up && !gpState.up) {
+        const rotated = rotatePiece(currentPiece);
+        const kicks = [0, -1, 1, -2, 2];
+        for (const kick of kicks) {
+            if (!collides(rotated, currentPiece.x + kick, currentPiece.y)) {
+                currentPiece.shape = rotated;
+                currentPiece.x += kick;
+                break;
+            }
+        }
+    }
+
+    // Soft Drop
+    softDrop = down;
+
+    // Hard Drop
+    if (hardDropBtn && !gpState.hardDrop) {
+        let dropDistance = 0;
+        while (!collides(currentPiece.shape, currentPiece.x, currentPiece.y + 1)) {
+            currentPiece.y++;
+            dropDistance++;
+        }
+        score += dropDistance * 2;
+        lockPiece();
+        clearLines();
+        spawnPiece();
+    }
+
+    gpState.left = left;
+    gpState.right = right;
+    gpState.down = down;
+    gpState.up = up;
+    gpState.a = aButton;
+    gpState.hardDrop = hardDropBtn;
+}
+
+let gamepadInterval = null;
+function startGamepadPolling() { if (!gamepadInterval) gamepadInterval = setInterval(pollGamepad, 80); }
+function stopGamepadPolling() { if (gamepadInterval) { clearInterval(gamepadInterval); gamepadInterval = null; } }
+
+window.addEventListener('gamepadconnected', () => startGamepadPolling());
+window.addEventListener('gamepaddisconnected', () => {
+    const pads = navigator.getGamepads();
+    if (!Array.from(pads).some(p => p && p.connected)) stopGamepadPolling();
+});
+window.addEventListener('load', () => {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const p of pads) { if (p && p.connected) { startGamepadPolling(); break; } }
+});
+
 // === START ===
 generateBlockTextures();
 requestAnimationFrame(gameLoop);

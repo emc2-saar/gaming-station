@@ -161,33 +161,6 @@ const gpState = {
     b: false,
 };
 
-// Hilfsfunktion: Keyboard-Event in den iframe senden
-function sendKeyToIframe(code, key, type) {
-    try {
-        const iframeDoc = gameFrame.contentDocument || gameFrame.contentWindow.document;
-        if (iframeDoc) {
-            const event = new KeyboardEvent(type, {
-                code: code,
-                key: key,
-                bubbles: true,
-                cancelable: true
-            });
-            iframeDoc.dispatchEvent(event);
-        }
-    } catch (e) {
-        // Cross-origin iframe – kann nicht zugreifen
-    }
-}
-
-// Gamepad-zu-Tastatur Mapping für Spiele im iframe
-const gamepadKeyMap = {
-    left:  { code: 'ArrowLeft',  key: 'ArrowLeft' },
-    right: { code: 'ArrowRight', key: 'ArrowRight' },
-    up:    { code: 'ArrowUp',    key: 'ArrowUp' },
-    down:  { code: 'ArrowDown',  key: 'ArrowDown' },
-    a:     { code: 'Space',      key: ' ' },
-};
-
 function pollGamepad() {
     const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
     let gp = null;
@@ -213,37 +186,15 @@ function pollGamepad() {
     const bButton = gp.buttons[1]?.pressed;
 
     if (gameIsOpen) {
-        // B-Button zum Zurückkehren
+        // Im Spiel: nur B-Button zum Zurückkehren
         if (bButton && !gpState.b) {
             closeGame();
         }
-
-        // Gamepad-Eingaben als Tastatur-Events an das Spiel im iframe weiterleiten
-        const inputs = { left, right, up, down, a: aButton };
-        for (const [name, pressed] of Object.entries(inputs)) {
-            const mapping = gamepadKeyMap[name];
-            if (!mapping) continue;
-
-            if (pressed && !gpState[name]) {
-                // Taste gedrückt
-                sendKeyToIframe(mapping.code, mapping.key, 'keydown');
-            } else if (!pressed && gpState[name]) {
-                // Taste losgelassen
-                sendKeyToIframe(mapping.code, mapping.key, 'keyup');
-            }
-        }
-
-        // State merken
-        gpState.left = left;
-        gpState.right = right;
-        gpState.up = up;
-        gpState.down = down;
-        gpState.a = aButton;
         gpState.b = bButton;
         return;
     }
 
-    // Navigation im Launcher (wie vorher)
+    // Navigation
     if (left && !gpState.left) {
         selectedIndex = Math.max(selectedIndex - 1, 0);
         updateSelection();

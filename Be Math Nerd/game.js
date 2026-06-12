@@ -489,5 +489,45 @@ canvas.addEventListener('touchstart', (e) => {
     }
 });
 
+// === GAMEPAD SUPPORT (Nintendo Switch Pro Controller kompatibel) ===
+const AXIS_THRESHOLD = 0.5;
+const gpState = { a: false };
+
+function pollGamepad() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let gp = null;
+    for (const pad of gamepads) { if (pad && pad.connected) { gp = pad; break; } }
+    if (!gp) return;
+
+    const aButton = gp.buttons[0]?.pressed || gp.buttons[1]?.pressed;
+
+    if (state === STATE_INPUT) {
+        // Im Eingabe-Modus: A-Button fokussiert das Eingabefeld
+        if (aButton && !gpState.a) {
+            mobileInput.value = inputDate;
+            mobileInput.focus();
+        }
+    } else if (state === STATE_FOUND || state === STATE_NOT_FOUND) {
+        // Nach Ergebnis: A-Button startet neu
+        if (aButton && !gpState.a) resetGame();
+    }
+
+    gpState.a = aButton;
+}
+
+let gamepadInterval = null;
+function startGamepadPolling() { if (!gamepadInterval) gamepadInterval = setInterval(pollGamepad, 80); }
+function stopGamepadPolling() { if (gamepadInterval) { clearInterval(gamepadInterval); gamepadInterval = null; } }
+
+window.addEventListener('gamepadconnected', () => startGamepadPolling());
+window.addEventListener('gamepaddisconnected', () => {
+    const pads = navigator.getGamepads();
+    if (!Array.from(pads).some(p => p && p.connected)) stopGamepadPolling();
+});
+window.addEventListener('load', () => {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const p of pads) { if (p && p.connected) { startGamepadPolling(); break; } }
+});
+
 // Start
 requestAnimationFrame(gameLoop);

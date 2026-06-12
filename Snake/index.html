@@ -631,10 +631,67 @@
             initGame();
         });
 
+        // === GAMEPAD SUPPORT (Nintendo Switch Pro Controller kompatibel) ===
+        const AXIS_THRESHOLD = 0.5;
+        const gpState = { up: false, down: false, left: false, right: false, a: false, start: false };
+
+        function pollGamepad() {
+            const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+            let gp = null;
+            for (const pad of gamepads) { if (pad && pad.connected) { gp = pad; break; } }
+            if (!gp) return;
+
+            const up = gp.buttons[12]?.pressed || gp.axes[1] < -AXIS_THRESHOLD;
+            const down = gp.buttons[13]?.pressed || gp.axes[1] > AXIS_THRESHOLD;
+            const left = gp.buttons[14]?.pressed || gp.axes[0] < -AXIS_THRESHOLD;
+            const right = gp.buttons[15]?.pressed || gp.axes[0] > AXIS_THRESHOLD;
+            const aButton = gp.buttons[0]?.pressed || gp.buttons[1]?.pressed;
+            const startBtn = gp.buttons[9]?.pressed; // + Button auf Pro Controller
+
+            // Restart bei Game Over
+            if (!gameRunning && aButton && !gpState.a) {
+                initGame();
+                gpState.a = aButton;
+                return;
+            }
+
+            // Pause mit Start/+
+            if (startBtn && !gpState.start) {
+                gamePaused = !gamePaused;
+            }
+
+            if (aiMode || !gameRunning) {
+                gpState.up = up; gpState.down = down; gpState.left = left; gpState.right = right;
+                gpState.a = aButton; gpState.start = startBtn;
+                return;
+            }
+
+            // Richtung ändern (mit Edge-Detection)
+            if (up && !gpState.up && velocityY === 0) { velocityX = 0; velocityY = -1; }
+            if (down && !gpState.down && velocityY === 0) { velocityX = 0; velocityY = 1; }
+            if (left && !gpState.left && velocityX === 0) { velocityX = -1; velocityY = 0; }
+            if (right && !gpState.right && velocityX === 0) { velocityX = 1; velocityY = 0; }
+
+            gpState.up = up; gpState.down = down; gpState.left = left; gpState.right = right;
+            gpState.a = aButton; gpState.start = startBtn;
+        }
+
+        let gamepadInterval = null;
+        function startGamepadPolling() { if (!gamepadInterval) gamepadInterval = setInterval(pollGamepad, 50); }
+        function stopGamepadPolling() { if (gamepadInterval) { clearInterval(gamepadInterval); gamepadInterval = null; } }
+
+        window.addEventListener('gamepadconnected', () => startGamepadPolling());
+        window.addEventListener('gamepaddisconnected', () => {
+            const pads = navigator.getGamepads();
+            if (!Array.from(pads).some(p => p && p.connected)) stopGamepadPolling();
+        });
+
         // Start game when page loads
         window.addEventListener('load', () => {
             highScoreElement.textContent = highScore;
             initGame();
+            const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+            for (const p of pads) { if (p && p.connected) { startGamepadPolling(); break; } }
         });
     </script>
 </body>

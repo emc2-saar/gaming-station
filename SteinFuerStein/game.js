@@ -291,6 +291,15 @@ function drawTile(tile) {
         ctx.roundRect(x, y, w, h, 4);
         ctx.fill();
     }
+
+    // Gamepad-Cursor Highlight
+    if (tile.cursorHighlight && free) {
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(x - 2, y - 2, w + 4, h + 4, 6);
+        ctx.stroke();
+    }
 }
 
 function drawRemovingTile(anim) {
@@ -583,6 +592,106 @@ document.getElementById('btn-shuffle').addEventListener('click', shuffleTiles);
 
 window.addEventListener('resize', () => {
     if (gameActive) resizeCanvas();
+});
+
+// === GAMEPAD SUPPORT (Nintendo Switch Pro Controller kompatibel) ===
+const AXIS_THRESHOLD = 0.5;
+const gpState = { up: false, down: false, left: false, right: false, a: false, x: false, y: false };
+let cursorTileIndex = 0; // Index in freie-Steine-Liste
+let cursorActive = false; // Wird aktiv wenn Controller benutzt wird
+
+function getFreeTiles() {
+    return tiles.filter(t => !t.removed && t.isFree()).sort((a, b) => {
+        if (a.row !== b.row) return a.row - b.row;
+        return a.col - b.col;
+    });
+}
+
+function highlightCursorTile() {
+    // Alle alten Cursor-Highlights entfernen
+    tiles.forEach(t => t.cursorHighlight = false);
+    if (!cursorActive || !gameActive) return;
+
+    const freeTiles = getFreeTiles();
+    if (freeTiles.length === 0) return;
+    if (cursorTileIndex >= freeTiles.length) cursorTileIndex = 0;
+    if (cursorTileIndex < 0) cursorTileIndex = freeTiles.length - 1;
+    freeTiles[cursorTileIndex].cursorHighlight = true;
+}
+
+function pollGamepad() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let gp = null;
+    for (const pad of gamepads) { if (pad && pad.connected) { gp = pad; break; } }
+    if (!gp) return;
+
+    const up = gp.buttons[12]?.pressed || gp.axes[1] < -AXIS_THRESHOLD;
+    const down = gp.buttons[13]?.pressed || gp.axes[1] > AXIS_THRESHOLD;
+    const left = gp.buttons[14]?.pressed || gp.axes[0] < -AXIS_THRESHOLD;
+    const right = gp.buttons[15]?.pressed || gp.axes[0] > AXIS_THRESHOLD;
+    const aButton = gp.buttons[0]?.pressed || gp.buttons[1]?.pressed;
+    const xButton = gp.buttons[2]?.pressed; // X = Hint
+    const yButton = gp.buttons[3]?.pressed; // Y = Shuffle
+
+    if (!gameActive) {
+        // Start / Restart
+        if (aButton && !gpState.a) startNewGame();
+        gpState.a = aButton;
+        return;
+    }
+
+    cursorActive = true;
+    const freeTiles = getFreeTiles();
+    if (freeTiles.length === 0) return;
+
+    // Navigation
+    if (right && !gpState.right) { cursorTileIndex++; highlightCursorTile(); }
+    if (left && !gpState.left) { cursorTileIndex--; if (cursorTileIndex < 0) cursorTileIndex = freeTiles.length - 1; highlightCursorTile(); }
+    if (down && !gpState.down) {
+        // Nächsten Stein in einer tieferen Reihe finden
+        const current = freeTiles[cursorTileIndex % freeTiles.length];
+        const below = freeTiles.findIndex((t, i) => i > cursorTileIndex && t.row > current.row);
+        if (below !== -1) cursorTileIndex = below;
+        highlightCursorTile();
+    }
+    if (up && !gpState.up) {
+        const current = freeTiles[cursorTileIndex % freeTiles.length];
+        let above = -1;
+        for (let i = cursorTileIndex - 1; i >= 0; i--) {
+            if (freeTiles[i].row < current.row) { above = i; break; }
+        }
+        if (above !== -1) cursorTileIndex = above;
+        highlightCursorTile();
+    }
+
+    // Auswählen mit A
+    if (aButton && !gpState.a) {
+        const idx = cursorTileIndex % freeTiles.length;
+        const tile = freeTiles[idx];
+        if (tile) handleClick(tile.x + 5, tile.y + 5);
+    }
+
+    // Hint mit X
+    if (xButton && !gpState.x) showHint();
+    // Shuffle mit Y
+    if (yButton && !gpState.y) shuffleTiles();
+
+    gpState.up = up; gpState.down = down; gpState.left = left; gpState.right = right;
+    gpState.a = aButton; gpState.x = xButton; gpState.y = yButton;
+}
+
+let gamepadInterval = null;
+function startGamepadPolling() { if (!gamepadInterval) gamepadInterval = setInterval(pollGamepad, 100); }
+function stopGamepadPolling() { if (gamepadInterval) { clearInterval(gamepadInterval); gamepadInterval = null; } }
+
+window.addEventListener('gamepadconnected', () => startGamepadPolling());
+window.addEventListener('gamepaddisconnected', () => {
+    const pads = navigator.getGamepads();
+    if (!Array.from(pads).some(p => p && p.connected)) stopGamepadPolling();
+});
+window.addEventListener('load', () => {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const p of pads) { if (p && p.connected) { startGamepadPolling(); break; } }
 });
 
 // ===== START =====

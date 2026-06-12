@@ -496,6 +496,44 @@ canvas.addEventListener('touchstart', (e) => {
 document.getElementById('start-btn').addEventListener('click', startGame);
 document.getElementById('restart-btn').addEventListener('click', startGame);
 
+// === GAMEPAD SUPPORT (Nintendo Switch Pro Controller kompatibel) ===
+const AXIS_THRESHOLD = 0.5;
+const gpState = { a: false, b: false };
+
+function pollGamepad() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let gp = null;
+    for (const pad of gamepads) { if (pad && pad.connected) { gp = pad; break; } }
+    if (!gp) return;
+
+    const aButton = gp.buttons[0]?.pressed || gp.buttons[1]?.pressed;
+
+    // Springen mit A/B, D-Pad Oben, oder linkem Stick hoch
+    const jumpBtn = aButton || gp.buttons[12]?.pressed || gp.axes[1] < -AXIS_THRESHOLD;
+
+    if (!gameRunning) {
+        if (aButton && !gpState.a) startGame();
+    } else {
+        if (jumpBtn && !gpState.a) jump();
+    }
+
+    gpState.a = jumpBtn;
+}
+
+let gamepadInterval = null;
+function startGamepadPolling() { if (!gamepadInterval) gamepadInterval = setInterval(pollGamepad, 80); }
+function stopGamepadPolling() { if (gamepadInterval) { clearInterval(gamepadInterval); gamepadInterval = null; } }
+
+window.addEventListener('gamepadconnected', () => startGamepadPolling());
+window.addEventListener('gamepaddisconnected', () => {
+    const pads = navigator.getGamepads();
+    if (!Array.from(pads).some(p => p && p.connected)) stopGamepadPolling();
+});
+window.addEventListener('load', () => {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const p of pads) { if (p && p.connected) { startGamepadPolling(); break; } }
+});
+
 // Start render loop (zeigt nur Hintergrund bis Start)
 function idleLoop(timestamp) {
     if (gameRunning) return;

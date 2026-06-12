@@ -545,4 +545,56 @@ function gameLoop(timestamp) {
     requestAnimationFrame(gameLoop);
 }
 
+// === GAMEPAD SUPPORT (Nintendo Switch Pro Controller kompatibel) ===
+const AXIS_THRESHOLD = 0.3;
+const gpState = { a: false };
+
+function pollGamepad() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let gp = null;
+    for (const pad of gamepads) {
+        if (pad && pad.connected) { gp = pad; break; }
+    }
+    if (!gp) return;
+
+    const aButton = gp.buttons[0]?.pressed || gp.buttons[1]?.pressed;
+
+    if (gameState === 'menu' || gameState === 'gameover') {
+        if (aButton && !gpState.a) startGame();
+        gpState.a = aButton;
+        return;
+    }
+
+    // Linker Stick / D-Pad: Vorwärts/Rückwärts
+    keys['ArrowUp'] = gp.buttons[12]?.pressed || gp.axes[1] < -AXIS_THRESHOLD;
+    keys['ArrowDown'] = gp.buttons[13]?.pressed || gp.axes[1] > AXIS_THRESHOLD;
+
+    // Linker Stick horizontal / D-Pad: Drehen
+    keys['ArrowLeft'] = gp.buttons[14]?.pressed || gp.axes[0] < -AXIS_THRESHOLD;
+    keys['ArrowRight'] = gp.buttons[15]?.pressed || gp.axes[0] > AXIS_THRESHOLD;
+
+    // Rechter Stick horizontal: feinere Drehung (zusätzlich)
+    if (gp.axes.length > 2) {
+        if (gp.axes[2] < -AXIS_THRESHOLD) keys['KeyA'] = true;
+        else if (gp.axes[2] > AXIS_THRESHOLD) keys['KeyD'] = true;
+        else { keys['KeyA'] = false; keys['KeyD'] = false; }
+    }
+
+    gpState.a = aButton;
+}
+
+let gamepadInterval = null;
+function startGamepadPolling() { if (!gamepadInterval) gamepadInterval = setInterval(pollGamepad, 50); }
+function stopGamepadPolling() { if (gamepadInterval) { clearInterval(gamepadInterval); gamepadInterval = null; } }
+
+window.addEventListener('gamepadconnected', () => startGamepadPolling());
+window.addEventListener('gamepaddisconnected', () => {
+    const pads = navigator.getGamepads();
+    if (!Array.from(pads).some(p => p && p.connected)) stopGamepadPolling();
+});
+window.addEventListener('load', () => {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const p of pads) { if (p && p.connected) { startGamepadPolling(); break; } }
+});
+
 requestAnimationFrame(gameLoop);
