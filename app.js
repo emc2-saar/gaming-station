@@ -29,6 +29,7 @@ const games = [
     { folder: "Ozean Schwimmer", icon: "🌊" },
     { folder: "Geister Memory", icon: "👻" },
     { folder: "Unterwasser Quartett", icon: "🐠" },
+    { folder: "LeoBloxx", icon: "🏰" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
