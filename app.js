@@ -32,6 +32,7 @@ const games = [
     { folder: "LeoBloxx", icon: "🏰" },
     { folder: "Minigolf", icon: "⛳" },
     { folder: "Creeper Pong", icon: "🟩" },
+    { folder: "Mops Springen", icon: "🐶" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
