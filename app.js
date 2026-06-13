@@ -27,6 +27,7 @@ const games = [
     { folder: "Karate Runner", icon: "🥋" },
     { folder: "Blütenpracht", icon: "🌸" },
     { folder: "Ozean Schwimmer", icon: "🌊" },
+    { folder: "Geister Memory", icon: "👻" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
