@@ -434,13 +434,13 @@ function drawStartScreen() {
     // Controls
     ctx.fillStyle = '#aaaaaa';
     ctx.font = '16px sans-serif';
-    ctx.fillText('← → Pfeiltasten zum Lenken', canvas.width / 2, 350);
+    ctx.fillText('← → / 🎮 Stick/D-Pad zum Lenken', canvas.width / 2, 350);
     ctx.fillText('Weiche den roten Autos aus!', canvas.width / 2, 380);
 
     // Start prompt
     ctx.fillStyle = '#00FF88';
     ctx.font = 'bold 20px sans-serif';
-    ctx.fillText('[ LEERTASTE ] zum Starten', canvas.width / 2, 450);
+    ctx.fillText('[ LEERTASTE / 🎮 ] zum Starten', canvas.width / 2, 450);
 
     if (highScore > 0) {
         ctx.fillStyle = '#FFD700';
@@ -470,7 +470,7 @@ function drawGameOverScreen() {
 
     ctx.fillStyle = '#00FF88';
     ctx.font = 'bold 20px sans-serif';
-    ctx.fillText('[ LEERTASTE ] Nochmal', canvas.width / 2, 400);
+    ctx.fillText('[ LEERTASTE / 🎮 ] Nochmal', canvas.width / 2, 400);
 }
 
 function drawFlagAt(flagData, x, y, w, h) {
@@ -543,6 +543,57 @@ canvas.addEventListener('touchmove', (e) => {
 canvas.addEventListener('touchend', () => {
     keys['ArrowLeft'] = false;
     keys['ArrowRight'] = false;
+});
+
+// === GAMEPAD SUPPORT (Nintendo Switch Pro Controller kompatibel) ===
+const AXIS_THRESHOLD = 0.5;
+const gpState = { left: false, right: false, a: false };
+
+function pollGamepad() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let gp = null;
+    for (const pad of gamepads) { if (pad && pad.connected) { gp = pad; break; } }
+    if (!gp) return;
+
+    const aButton = gp.buttons[0]?.pressed || gp.buttons[1]?.pressed;
+    const left = gp.buttons[14]?.pressed || gp.axes[0] < -AXIS_THRESHOLD;
+    const right = gp.buttons[15]?.pressed || gp.axes[0] > AXIS_THRESHOLD;
+
+    if (gameState !== 'playing') {
+        if (aButton && !gpState.a) startGame();
+        gpState.a = aButton;
+        gpState.left = left;
+        gpState.right = right;
+        return;
+    }
+
+    // Spurwechsel über Controller (nur bei neuer Betätigung)
+    if (left && !gpState.left) {
+        keys['ArrowLeft'] = true;
+        setTimeout(() => { keys['ArrowLeft'] = false; }, 100);
+    }
+    if (right && !gpState.right) {
+        keys['ArrowRight'] = true;
+        setTimeout(() => { keys['ArrowRight'] = false; }, 100);
+    }
+
+    gpState.left = left;
+    gpState.right = right;
+    gpState.a = aButton;
+}
+
+let gamepadInterval = null;
+function startGamepadPolling() { if (!gamepadInterval) gamepadInterval = setInterval(pollGamepad, 50); }
+function stopGamepadPolling() { if (gamepadInterval) { clearInterval(gamepadInterval); gamepadInterval = null; } }
+
+window.addEventListener('gamepadconnected', () => startGamepadPolling());
+window.addEventListener('gamepaddisconnected', () => {
+    const pads = navigator.getGamepads();
+    if (!Array.from(pads).some(p => p && p.connected)) stopGamepadPolling();
+});
+window.addEventListener('load', () => {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const p of pads) { if (p && p.connected) { startGamepadPolling(); break; } }
 });
 
 // Game loop

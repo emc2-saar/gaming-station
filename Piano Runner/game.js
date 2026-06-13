@@ -487,15 +487,18 @@ function drawStartScreen() {
     // Controls
     ctx.font = '16px sans-serif';
     ctx.fillStyle = '#4ecdc4';
-    ctx.fillText('← → / A D  =  Bewegen', canvas.width / 2, 340);
-    ctx.fillText('Leertaste / ↑ / W  =  Springen (2x möglich!)', canvas.width / 2, 370);
+    ctx.fillText('← → / A D / 🎮 Stick  =  Bewegen', canvas.width / 2, 330);
+    ctx.fillText('Leertaste / ↑ / W / 🎮 A-Button  =  Springen (2x!)', canvas.width / 2, 360);
+    ctx.font = '13px sans-serif';
+    ctx.fillStyle = '#888';
+    ctx.fillText('Gamepad wird unterstützt!', canvas.width / 2, 390);
     
     // Start prompt
     ctx.font = 'bold 22px sans-serif';
     ctx.fillStyle = '#ffd700';
     const pulse = Math.sin(Date.now() / 500) * 0.3 + 0.7;
     ctx.globalAlpha = pulse;
-    ctx.fillText('Leertaste zum Starten', canvas.width / 2, 440);
+    ctx.fillText('Leertaste / 🎮 zum Starten', canvas.width / 2, 440);
     ctx.globalAlpha = 1;
 }
 
@@ -632,6 +635,60 @@ canvas.addEventListener('touchend', (e) => {
     e.preventDefault();
     keys['ArrowLeft'] = false;
     keys['ArrowRight'] = false;
+});
+
+// === GAMEPAD SUPPORT (Nintendo Switch Pro Controller kompatibel) ===
+const AXIS_THRESHOLD = 0.5;
+const gpState = { left: false, right: false, a: false };
+
+function pollGamepad() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let gp = null;
+    for (const pad of gamepads) { if (pad && pad.connected) { gp = pad; break; } }
+    if (!gp) return;
+
+    const aButton = gp.buttons[0]?.pressed || gp.buttons[1]?.pressed;
+    const left = gp.buttons[14]?.pressed || gp.axes[0] < -AXIS_THRESHOLD;
+    const right = gp.buttons[15]?.pressed || gp.axes[0] > AXIS_THRESHOLD;
+
+    if (gameState !== 'playing') {
+        if (aButton && !gpState.a) startGame();
+        gpState.a = aButton;
+        gpState.left = left;
+        gpState.right = right;
+        return;
+    }
+
+    // Bewegung links/rechts über Controller
+    keys['ArrowLeft'] = left;
+    keys['ArrowRight'] = right;
+
+    // Springen (A/B-Button, nur bei neuer Betätigung)
+    if (aButton && !gpState.a) {
+        if (player.jumpCount < player.maxJumps) {
+            player.velY = JUMP_FORCE;
+            player.jumpCount++;
+            player.onGround = false;
+        }
+    }
+
+    gpState.left = left;
+    gpState.right = right;
+    gpState.a = aButton;
+}
+
+let gamepadInterval = null;
+function startGamepadPolling() { if (!gamepadInterval) gamepadInterval = setInterval(pollGamepad, 50); }
+function stopGamepadPolling() { if (gamepadInterval) { clearInterval(gamepadInterval); gamepadInterval = null; } }
+
+window.addEventListener('gamepadconnected', () => startGamepadPolling());
+window.addEventListener('gamepaddisconnected', () => {
+    const pads = navigator.getGamepads();
+    if (!Array.from(pads).some(p => p && p.connected)) stopGamepadPolling();
+});
+window.addEventListener('load', () => {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const p of pads) { if (p && p.connected) { startGamepadPolling(); break; } }
 });
 
 // === GAME LOOP ===
