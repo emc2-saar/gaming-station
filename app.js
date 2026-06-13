@@ -16,6 +16,7 @@ const games = [
     { folder: "Escape Game", icon: "🏃" },
     { folder: "Maker Tic-Tac-Toe", icon: "⚙" },
     { folder: "Tanz vs. Judo", icon: "💃" },
+    { folder: "Soccer Craft", icon: "⚽" },
     { folder: "Controller Test", icon: "🕹️" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
