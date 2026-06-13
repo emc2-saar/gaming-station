@@ -31,6 +31,7 @@ const games = [
     { folder: "Unterwasser Quartett", icon: "🐠" },
     { folder: "LeoBloxx", icon: "🏰" },
     { folder: "Minigolf", icon: "⛳" },
+    { folder: "Creeper Pong", icon: "🟩" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
