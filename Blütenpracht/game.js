@@ -335,7 +335,19 @@ function getScores() {
 // --- Update ---
 
 function update(dt) {
-    if (gameState !== STATE_PLAYING) return;
+    // Gamepad: Spiel starten / neustarten mit A-Button
+    if (gameState === STATE_START || gameState === STATE_GAMEOVER) {
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        for (let i = 0; i < gamepads.length; i++) {
+            const gp = gamepads[i];
+            if (!gp) continue;
+            if (gp.buttons[0] && gp.buttons[0].pressed) {
+                startGame();
+                return;
+            }
+        }
+        return;
+    }
     
     handleInput(dt);
     
