@@ -18,6 +18,8 @@ const games = [
     { folder: "Tanz vs. Judo", icon: "💃" },
     { folder: "Soccer Craft", icon: "⚽" },
     { folder: "Controller Test", icon: "🕹️" },
+    { folder: "WM Racer", icon: "🏎️" },
+    { folder: "Piano Runner", icon: "🎹" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
