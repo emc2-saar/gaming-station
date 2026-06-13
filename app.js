@@ -21,6 +21,7 @@ const games = [
     { folder: "WM Racer", icon: "🏎️" },
     { folder: "Piano Runner", icon: "🎹" },
     { folder: "Joy Jump", icon: "🦘" },
+    { folder: "Waldschrecken", icon: "🌲" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
