@@ -25,6 +25,7 @@ const games = [
     { folder: "crazy-ball", icon: "🏀" },
     { folder: "Jump Obby", icon: "🏁" },
     { folder: "Karate Runner", icon: "🥋" },
+    { folder: "Blütenpracht", icon: "🌸" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
