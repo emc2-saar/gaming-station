@@ -20,6 +20,7 @@ const games = [
     { folder: "Controller Test", icon: "🕹️" },
     { folder: "WM Racer", icon: "🏎️" },
     { folder: "Piano Runner", icon: "🎹" },
+    { folder: "Joy Jump", icon: "🦘" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
