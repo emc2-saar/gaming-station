@@ -336,10 +336,10 @@ function handleInput(dt) {
         player.vx = -speed;
     }
     if (keys['ArrowUp'] || keys['KeyW']) {
-        player.vz = speed;
+        player.vz = -speed;
     }
     if (keys['ArrowDown'] || keys['KeyS']) {
-        player.vz = -speed;
+        player.vz = speed;
     }
     if ((keys['Space'] || keys['Enter']) && player.grounded) {
         player.vy = JUMP_FORCE;
@@ -356,7 +356,7 @@ function handleInput(dt) {
         const ly = Math.abs(gp.axes[1]) > DEADZONE ? gp.axes[1] : 0;
         
         if (lx !== 0) player.vx = lx * speed;
-        if (ly !== 0) player.vz = -ly * speed;
+        if (ly !== 0) player.vz = ly * speed;
         
         // A button (jump)
         if (gp.buttons[0] && gp.buttons[0].pressed && player.grounded) {
