@@ -392,10 +392,10 @@ function resetGame() {
 }
 
 function update(dt) {
-    if (!gameRunning) return;
-    
-    // Gamepad input
+    // Gamepad input - always poll (also on start/gameover screens)
     pollGamepad(dt);
+    
+    if (!gameRunning) return;
     
     // Animation
     player.animTimer += dt;
