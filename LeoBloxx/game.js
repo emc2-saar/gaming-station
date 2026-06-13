@@ -525,8 +525,8 @@ function pollGamepads(dt) {
         // A button or trigger for shooting
         p.keys.shoot = gp.buttons[0].pressed || gp.buttons[7].pressed || gp.buttons[5].pressed;
 
-        // Start button to start/restart
-        if (gp.buttons[9] && gp.buttons[9].pressed) {
+        // Start button or A-button to start/restart
+        if ((gp.buttons[9] && gp.buttons[9].pressed) || (gp.buttons[0] && gp.buttons[0].pressed)) {
             if (gameState === 'start' || gameState === 'gameover') {
                 startGame();
             }
