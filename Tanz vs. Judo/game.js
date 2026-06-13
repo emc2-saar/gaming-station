@@ -113,6 +113,85 @@ document.addEventListener('keyup', (e) => {
     keysPressed[e.code] = false;
 });
 
+// ============================================================
+// GAMEPAD SUPPORT
+// ============================================================
+let gamepadConnected = false;
+let gamepadPrevButtons = {};
+let gamepadPrevAxes = { up: false, down: false, left: false, right: false };
+
+window.addEventListener('gamepadconnected', (e) => {
+    gamepadConnected = true;
+    console.log(`Gamepad verbunden: ${e.gamepad.id}`);
+});
+
+window.addEventListener('gamepaddisconnected', (e) => {
+    gamepadConnected = false;
+    console.log('Gamepad getrennt');
+});
+
+function pollGamepad() {
+    const gamepads = navigator.getGamepads();
+    if (!gamepads) return;
+    
+    for (let i = 0; i < gamepads.length; i++) {
+        const gp = gamepads[i];
+        if (!gp) continue;
+        
+        // --- Button A (index 0) = Leertaste ---
+        const aPressed = gp.buttons[0] && gp.buttons[0].pressed;
+        if (aPressed && !gamepadPrevButtons[0]) {
+            if (gameState === STATE_MENU) startGame();
+            else if (gameState === STATE_GAME_OVER) resetGame();
+            else if (gameState === STATE_ROUND_RESULT) nextTurn();
+        }
+        gamepadPrevButtons[0] = aPressed;
+        
+        // --- D-Pad (buttons 12-15) and Left Stick (axes 0,1) ---
+        const DEADZONE = 0.4;
+        const axisX = gp.axes[0] || 0;
+        const axisY = gp.axes[1] || 0;
+        
+        // D-Pad buttons: 12=Up, 13=Down, 14=Left, 15=Right
+        const dpadUp = (gp.buttons[12] && gp.buttons[12].pressed) || axisY < -DEADZONE;
+        const dpadDown = (gp.buttons[13] && gp.buttons[13].pressed) || axisY > DEADZONE;
+        const dpadLeft = (gp.buttons[14] && gp.buttons[14].pressed) || axisX < -DEADZONE;
+        const dpadRight = (gp.buttons[15] && gp.buttons[15].pressed) || axisX > DEADZONE;
+        
+        // Only trigger on fresh press (edge detection)
+        if (gameState === STATE_PLAYING && turnPhase === 'input') {
+            if (dpadUp && !gamepadPrevAxes.up) {
+                currentPose = 'up';
+                poseTimer = POSE_DURATION;
+                handleInput('↑');
+            }
+            if (dpadDown && !gamepadPrevAxes.down) {
+                currentPose = 'down';
+                poseTimer = POSE_DURATION;
+                handleInput('↓');
+            }
+            if (dpadLeft && !gamepadPrevAxes.left) {
+                currentPose = 'left';
+                poseTimer = POSE_DURATION;
+                handleInput('←');
+            }
+            if (dpadRight && !gamepadPrevAxes.right) {
+                currentPose = 'right';
+                poseTimer = POSE_DURATION;
+                handleInput('→');
+            }
+        }
+        
+        gamepadPrevAxes.up = dpadUp;
+        gamepadPrevAxes.down = dpadDown;
+        gamepadPrevAxes.left = dpadLeft;
+        gamepadPrevAxes.right = dpadRight;
+        
+        // Only handle first connected gamepad
+        break;
+    }
+}
+
 function startGame() {
     score = { dancer: 0, judoka: 0 };
     currentRound = 0;
@@ -376,13 +455,13 @@ function drawMenu() {
     
     ctx.font = '16px sans-serif';
     ctx.fillStyle = '#888';
-    ctx.fillText('Steuerung: ← ↑ ↓ → (Pfeiltasten oder WASD)', canvas.width/2, 510);
+    ctx.fillText('Steuerung: ← ↑ ↓ → (Pfeiltasten, WASD oder Gamepad)', canvas.width/2, 510);
     
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 22px sans-serif';
     const pulse = Math.sin(Date.now() / 500) * 0.3 + 0.7;
     ctx.globalAlpha = pulse;
-    ctx.fillText('[ LEERTASTE ] zum Starten', canvas.width/2, 560);
+    ctx.fillText('[ LEERTASTE / A-Button ] zum Starten', canvas.width/2, 560);
     ctx.globalAlpha = 1;
 }
 
@@ -943,6 +1022,7 @@ function gameLoop(timestamp) {
     lastTime = timestamp;
     const dt = Math.min(elapsed / (1000 / TARGET_FPS), 3);
     
+    pollGamepad();
     update(dt);
     draw();
     requestAnimationFrame(gameLoop);
