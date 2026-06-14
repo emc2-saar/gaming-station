@@ -45,6 +45,7 @@ const games = [
     { folder: "Mountain Bike 1-2P", icon: "🚴" },
     { folder: "Drachen-Tamagotchi", icon: "🐉" },
     { folder: "Katzendieb", icon: "🐱" },
+    { folder: "Wuff Wuff", icon: "🐕" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
