@@ -37,6 +37,7 @@ const games = [
     { folder: "Torwandschiessen", icon: "⚽" },
     { folder: "Labyrinth der Spinnen", icon: "🕷️" },
     { folder: "Autojump", icon: "🚗" },
+    { folder: "Cluster Clash", icon: "🧲" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
