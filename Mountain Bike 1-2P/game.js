@@ -54,12 +54,18 @@ document.addEventListener('keydown', (e) => {
             startGame();
         }
     }
+    if (gameState === 'modeSelect') {
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') playerMode = 1;
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') playerMode = 2;
+    }
 });
 document.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
 function handleConfirm() {
     if (gameState === 'menu') {
         gameState = 'modeSelect';
+    } else if (gameState === 'modeSelect') {
+        startGame();
     } else if (gameState === 'gameOver') {
         gameState = 'modeSelect';
     }
@@ -473,15 +479,43 @@ function startGame() {
 }
 
 // === UPDATE ===
+// === GAMEPAD MENU STATE ===
+let gpMenuState = { confirm: false, left: false, right: false };
+
 function update(dt) {
     if (gameState !== 'playing') {
         // Check gamepad confirm in menus
         const gps = getGamepads();
         for (let gp of gps) {
-            if (gp.buttons[0]?.pressed || gp.buttons[9]?.pressed) {
-                handleConfirm();
-                break;
+            const confirmPressed = gp.buttons[0]?.pressed || gp.buttons[9]?.pressed;
+            const lx = Math.abs(gp.axes[0]) > DEADZONE ? gp.axes[0] : 0;
+            const leftPressed = lx < -DEADZONE || gp.buttons[14]?.pressed;
+            const rightPressed = lx > DEADZONE || gp.buttons[15]?.pressed;
+
+            // Edge detection for confirm
+            if (confirmPressed && !gpMenuState.confirm) {
+                if (gameState === 'menu') {
+                    handleConfirm();
+                } else if (gameState === 'modeSelect') {
+                    startGame();
+                } else if (gameState === 'gameOver') {
+                    handleConfirm();
+                }
             }
+            // Edge detection for left/right in modeSelect
+            if (gameState === 'modeSelect') {
+                if (leftPressed && !gpMenuState.left) {
+                    playerMode = 1;
+                }
+                if (rightPressed && !gpMenuState.right) {
+                    playerMode = 2;
+                }
+            }
+
+            gpMenuState.confirm = confirmPressed;
+            gpMenuState.left = leftPressed;
+            gpMenuState.right = rightPressed;
+            break;
         }
         return;
     }
@@ -734,20 +768,28 @@ function drawModeSelect() {
     ctx.fillText('Spielmodus wählen', canvas.width / 2, canvas.height / 2 - 80);
 
     // 1 Player box
-    ctx.strokeStyle = '#00ccff';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = playerMode === 1 ? '#00ccff' : '#555';
+    ctx.lineWidth = playerMode === 1 ? 4 : 2;
     ctx.strokeRect(canvas.width / 2 - 180, canvas.height / 2 - 40, 150, 80);
-    ctx.fillStyle = '#00ccff';
+    if (playerMode === 1) {
+        ctx.fillStyle = 'rgba(0, 204, 255, 0.15)';
+        ctx.fillRect(canvas.width / 2 - 180, canvas.height / 2 - 40, 150, 80);
+    }
+    ctx.fillStyle = playerMode === 1 ? '#00ccff' : '#888';
     ctx.font = 'bold 24px sans-serif';
     ctx.fillText('1', canvas.width / 2 - 105, canvas.height / 2 + 5);
     ctx.font = '16px sans-serif';
     ctx.fillText('1 Spieler', canvas.width / 2 - 105, canvas.height / 2 + 30);
 
     // 2 Player box
-    ctx.strokeStyle = '#ff4488';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = playerMode === 2 ? '#ff4488' : '#555';
+    ctx.lineWidth = playerMode === 2 ? 4 : 2;
     ctx.strokeRect(canvas.width / 2 + 30, canvas.height / 2 - 40, 150, 80);
-    ctx.fillStyle = '#ff4488';
+    if (playerMode === 2) {
+        ctx.fillStyle = 'rgba(255, 68, 136, 0.15)';
+        ctx.fillRect(canvas.width / 2 + 30, canvas.height / 2 - 40, 150, 80);
+    }
+    ctx.fillStyle = playerMode === 2 ? '#ff4488' : '#888';
     ctx.font = 'bold 24px sans-serif';
     ctx.fillText('2', canvas.width / 2 + 105, canvas.height / 2 + 5);
     ctx.font = '16px sans-serif';
@@ -755,7 +797,7 @@ function drawModeSelect() {
 
     ctx.fillStyle = '#aaa';
     ctx.font = '18px sans-serif';
-    ctx.fillText('Drücke 1 oder 2', canvas.width / 2, canvas.height / 2 + 80);
+    ctx.fillText('Drücke 1 oder 2 (oder Gamepad: ← / → und A)', canvas.width / 2, canvas.height / 2 + 80);
 
     ctx.fillStyle = '#666';
     ctx.font = '14px sans-serif';
