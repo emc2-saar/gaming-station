@@ -38,6 +38,7 @@ const games = [
     { folder: "Labyrinth der Spinnen", icon: "🕷️" },
     { folder: "Autojump", icon: "🚗" },
     { folder: "Cluster Clash", icon: "🧲" },
+    { folder: "Schnatz Jagd", icon: "🧹" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
