@@ -41,6 +41,7 @@ const games = [
     { folder: "Schnatz Jagd", icon: "🧹" },
     { folder: "Fan-Rhythmus", icon: "🥁" },
     { folder: "Handball Clasics", icon: "🤾" },
+    { folder: "Hockey Clash 2P", icon: "🏒" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
