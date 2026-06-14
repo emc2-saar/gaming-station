@@ -5,6 +5,8 @@ const TARGET_FPS = 60;
 let lastTime = 0;
 let gameRunning = false;
 let score = 0;
+let generation = 1;        // Aktuelle Generation
+let totalScore = 0;        // Score über alle Generationen
 
 // --- Dragon Stats ---
 let hunger = 100;      // 0 = verhungert, 100 = satt
@@ -40,6 +42,24 @@ const HATCH_TIME = 90; // 1.5 seconds at 60fps
 const STAGE_NAMES = ['Ei', 'Baby', 'Junger Drache', 'Erwachsener Drache'];
 const GROWTH_THRESHOLDS = [0, 30, 65, 100];
 
+// --- Dragon Colors per Stage ---
+const STAGE_COLORS = {
+    1: { body: '#4ade80', belly: '#86efac', wing: '#22c55e', tail: '#4ade80' },  // Baby: Grün
+    2: { body: '#60a5fa', belly: '#93c5fd', wing: '#3b82f6', tail: '#60a5fa' },  // Jung: Blau
+    3: { body: '#f97316', belly: '#fdba74', wing: '#ea580c', tail: '#f97316' }   // Erwachsen: Orange/Feuer
+};
+
+// --- Fire breathing ---
+let fireParticles = [];
+let fireTimer = 0;
+const FIRE_INTERVAL = 90; // spuckt alle 1.5 Sek Feuer
+
+// --- Offspring / Generation ---
+let offspringTimer = 0;
+const OFFSPRING_TIME = 180; // 3 Sek auf Stufe 3 mit vollem Wachstum, dann Nachwuchs
+let offspringReady = false;
+let offspringAnimTimer = 0;
+
 // --- Gamepad ---
 let lastGamepadButtons = [];
 let gamepadCooldown = 0;
@@ -67,6 +87,26 @@ function update(dt) {
     // Action animation
     if (actionAnimTimer > 0) {
         actionAnimTimer -= dt;
+    }
+
+    // Fire breathing for adult dragon
+    if (stage === 3) {
+        fireTimer += dt;
+        if (fireTimer >= FIRE_INTERVAL) {
+            fireTimer = 0;
+            spawnFire();
+        }
+        // Update fire particles
+        for (let i = fireParticles.length - 1; i >= 0; i--) {
+            let p = fireParticles[i];
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.life -= dt;
+            p.size *= Math.pow(0.97, dt);
+            if (p.life <= 0) {
+                fireParticles.splice(i, 1);
+            }
+        }
     }
 
     // Egg hatching
@@ -101,14 +141,31 @@ function update(dt) {
             actionAnimTimer = 90;
         }
 
+        // Check if adult dragon is fully grown -> offspring!
+        if (stage === 3 && growth >= 100 && !offspringReady) {
+            offspringTimer += 1;
+            if (offspringTimer >= 10) { // kurze Wartezeit dann Nachwuchs
+                offspringReady = true;
+                offspringAnimTimer = 120;
+            }
+        }
+
         // Check death
         if (hunger <= 0 && happiness <= 0 && energy <= 0) {
             alive = false;
         }
     }
 
-    // Score = time alive + growth
-    score = Math.floor(growth * 10 + stage * 100);
+    // Handle offspring animation and new generation
+    if (offspringReady) {
+        offspringAnimTimer -= dt;
+        if (offspringAnimTimer <= 0) {
+            spawnOffspring();
+        }
+    }
+
+    // Score = generation bonus + growth + stage
+    score = totalScore + Math.floor(growth * 10 + stage * 100);
 
     // Gamepad
     handleGamepad(dt);
@@ -169,6 +226,44 @@ function doAction(action) {
     }
 }
 
+function spawnFire() {
+    // Create a burst of fire particles from the dragon's mouth
+    for (let i = 0; i < 12; i++) {
+        fireParticles.push({
+            x: canvas.width / 2,
+            y: canvas.height / 2 + 20 + bounceOffset - 55 * 1.4, // mouth position scaled
+            vx: (Math.random() - 0.5) * 3,
+            vy: -2 - Math.random() * 3,
+            size: 6 + Math.random() * 8,
+            life: 30 + Math.random() * 30,
+            color: Math.random() > 0.5 ? '#ff4500' : (Math.random() > 0.5 ? '#ffd700' : '#ff6347')
+        });
+    }
+}
+
+function spawnOffspring() {
+    // Add score for completing this generation
+    totalScore += 500 + generation * 100;
+    generation++;
+    
+    // Reset dragon to egg but keep score
+    hunger = 100;
+    happiness = 100;
+    energy = 100;
+    growth = 0;
+    stage = 0;
+    hatchTimer = 0;
+    decayAccum = 0;
+    fireParticles = [];
+    fireTimer = 0;
+    offspringReady = false;
+    offspringTimer = 0;
+    offspringAnimTimer = 0;
+    
+    actionAnim = 'offspring';
+    actionAnimTimer = 90;
+}
+
 function draw() {
     // Background gradient
     let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -197,6 +292,14 @@ function draw() {
     ctx.textAlign = 'center';
     ctx.fillText(STAGE_NAMES[stage], canvas.width / 2, 30);
 
+    // Draw generation and score
+    ctx.fillStyle = '#ffd93d';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Generation: ' + generation, 30, 30);
+    ctx.textAlign = 'right';
+    ctx.fillText('Score: ' + score, canvas.width - 30, 30);
+
     // Draw stats bars
     drawStatBar(30, 50, 'Hunger', hunger, '#ff6b6b');
     drawStatBar(30, 85, 'Freude', happiness, '#ffd93d');
@@ -207,6 +310,17 @@ function draw() {
 
     // Draw dragon
     drawDragon(canvas.width / 2, canvas.height / 2 + 20);
+
+    // Draw offspring ready indicator
+    if (offspringReady && offspringAnimTimer > 0) {
+        ctx.fillStyle = '#ffd93d';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.textAlign = 'center';
+        let pulse = Math.sin(animTimer * 0.2) * 0.3 + 0.7;
+        ctx.globalAlpha = pulse;
+        ctx.fillText('🥚 Nachwuchs kommt... 🐉', canvas.width / 2, 200);
+        ctx.globalAlpha = 1;
+    }
 
     // Draw action animation
     if (actionAnimTimer > 0) {
@@ -268,6 +382,14 @@ function drawDragon(x, y) {
         size = 1.4;
     }
 
+    // Get stage colors
+    let colors = STAGE_COLORS[stage];
+
+    // Draw fire particles (behind dragon for adult)
+    if (stage === 3) {
+        drawFireParticles();
+    }
+
     ctx.save();
     ctx.translate(x, by);
     ctx.scale(size, size);
@@ -279,25 +401,25 @@ function drawDragon(x, y) {
     }
 
     // Body
-    ctx.fillStyle = '#4ade80';
+    ctx.fillStyle = colors.body;
     ctx.beginPath();
     ctx.ellipse(0, 0, 40, 50, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Belly
-    ctx.fillStyle = '#86efac';
+    ctx.fillStyle = colors.belly;
     ctx.beginPath();
     ctx.ellipse(0, 10, 25, 35, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Head
-    ctx.fillStyle = '#4ade80';
+    ctx.fillStyle = colors.body;
     ctx.beginPath();
     ctx.ellipse(0, -55, 30, 25, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Horns
-    ctx.fillStyle = '#fbbf24';
+    ctx.fillStyle = stage === 3 ? '#dc2626' : '#fbbf24';
     ctx.beginPath();
     ctx.moveTo(-15, -75);
     ctx.lineTo(-10, -60);
@@ -334,10 +456,10 @@ function drawDragon(x, y) {
         ctx.ellipse(10, -57, 7, 8, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Pupils - mood based
+        // Pupils - mood based, red for adult
         let pupilY = -57;
-        if (happiness < 30) pupilY = -55; // sad, looking down
-        ctx.fillStyle = '#000';
+        if (happiness < 30) pupilY = -55;
+        ctx.fillStyle = stage === 3 ? '#dc2626' : '#000';
         ctx.beginPath();
         ctx.ellipse(-10, pupilY, 4, 5, 0, 0, Math.PI * 2);
         ctx.fill();
@@ -350,25 +472,22 @@ function drawDragon(x, y) {
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 2;
     if (happiness > 60) {
-        // Happy smile
         ctx.beginPath();
         ctx.arc(0, -45, 10, 0.1 * Math.PI, 0.9 * Math.PI);
         ctx.stroke();
     } else if (happiness > 30) {
-        // Neutral
         ctx.beginPath();
         ctx.moveTo(-7, -42);
         ctx.lineTo(7, -42);
         ctx.stroke();
     } else {
-        // Sad
         ctx.beginPath();
         ctx.arc(0, -38, 8, 1.1 * Math.PI, 1.9 * Math.PI);
         ctx.stroke();
     }
 
     // Wings
-    ctx.fillStyle = '#22c55e';
+    ctx.fillStyle = colors.wing;
     ctx.beginPath();
     ctx.moveTo(-40, -10);
     ctx.quadraticCurveTo(-75, -40, -55, 10);
@@ -381,7 +500,7 @@ function drawDragon(x, y) {
     ctx.fill();
 
     // Tail
-    ctx.strokeStyle = '#4ade80';
+    ctx.strokeStyle = colors.tail;
     ctx.lineWidth = 8;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -390,17 +509,29 @@ function drawDragon(x, y) {
     ctx.quadraticCurveTo(50, 40, 45, 35);
     ctx.stroke();
 
-    // Tail tip
-    ctx.fillStyle = '#fbbf24';
-    ctx.beginPath();
-    ctx.moveTo(45, 35);
-    ctx.lineTo(55, 30);
-    ctx.lineTo(50, 42);
-    ctx.closePath();
-    ctx.fill();
+    // Tail tip - flame-shaped for adult
+    if (stage === 3) {
+        ctx.fillStyle = '#ff4500';
+        ctx.beginPath();
+        ctx.moveTo(45, 35);
+        ctx.lineTo(60, 25);
+        ctx.lineTo(52, 35);
+        ctx.lineTo(58, 45);
+        ctx.lineTo(45, 38);
+        ctx.closePath();
+        ctx.fill();
+    } else {
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.moveTo(45, 35);
+        ctx.lineTo(55, 30);
+        ctx.lineTo(50, 42);
+        ctx.closePath();
+        ctx.fill();
+    }
 
     // Feet
-    ctx.fillStyle = '#4ade80';
+    ctx.fillStyle = colors.body;
     ctx.beginPath();
     ctx.ellipse(-15, 50, 12, 8, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -423,6 +554,25 @@ function drawDragon(x, y) {
 
     ctx.restore();
     ctx.shadowBlur = 0;
+}
+
+function drawFireParticles() {
+    for (let p of fireParticles) {
+        ctx.globalAlpha = Math.min(1, p.life / 15);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, p.size, p.size * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Glow effect
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, p.size * 0.5, p.size * 0.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+    ctx.globalAlpha = 1;
 }
 
 function drawEgg(x, y) {
@@ -487,6 +637,14 @@ function drawActionAnimation() {
         ctx.font = '24px sans-serif';
         ctx.fillStyle = '#a855f7';
         ctx.fillText('✨ Evolution! ✨', centerX, centerY - 100);
+    } else if (actionAnim === 'offspring') {
+        ctx.globalAlpha = Math.min(1, actionAnimTimer / 30);
+        ctx.font = 'bold 22px sans-serif';
+        ctx.fillStyle = '#ffd93d';
+        ctx.fillText('🥚 Nachwuchs! Generation ' + generation + ' 🐉', centerX, centerY - 100);
+        ctx.font = '16px sans-serif';
+        ctx.fillStyle = '#4ade80';
+        ctx.fillText('+' + (500 + (generation - 1) * 100) + ' Punkte!', centerX, centerY - 70);
     }
 
     ctx.globalAlpha = 1;
@@ -566,18 +724,22 @@ function drawGameOver() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = '#ff6b6b';
-    ctx.font = 'bold 32px sans-serif';
+    ctx.font = 'bold 28px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Dein Drache ist eingeschlafen...', canvas.width / 2, canvas.height / 2 - 60);
+    ctx.fillText('Dein Drache ist eingeschlafen...', canvas.width / 2, canvas.height / 2 - 80);
 
     ctx.fillStyle = '#fff';
-    ctx.font = '20px sans-serif';
-    ctx.fillText('Endgültiger Wachstum: ' + STAGE_NAMES[stage], canvas.width / 2, canvas.height / 2);
-    ctx.fillText('Score: ' + score, canvas.width / 2, canvas.height / 2 + 35);
+    ctx.font = '18px sans-serif';
+    ctx.fillText('Generation: ' + generation, canvas.width / 2, canvas.height / 2 - 30);
+    ctx.fillText('Letzte Stufe: ' + STAGE_NAMES[stage], canvas.width / 2, canvas.height / 2);
+
+    ctx.fillStyle = '#ffd93d';
+    ctx.font = 'bold 26px sans-serif';
+    ctx.fillText('Score: ' + score, canvas.width / 2, canvas.height / 2 + 45);
 
     ctx.fillStyle = '#4ade80';
     ctx.font = 'bold 18px sans-serif';
-    ctx.fillText('Leertaste für neues Ei', canvas.width / 2, canvas.height / 2 + 90);
+    ctx.fillText('Leertaste für neues Spiel', canvas.width / 2, canvas.height / 2 + 100);
 }
 
 function gameLoop(timestamp) {
@@ -599,11 +761,18 @@ function startGame() {
     stage = 0;
     alive = true;
     score = 0;
+    totalScore = 0;
+    generation = 1;
     hatchTimer = 0;
     decayAccum = 0;
     selectedAction = 0;
     actionAnim = '';
     actionAnimTimer = 0;
+    fireParticles = [];
+    fireTimer = 0;
+    offspringReady = false;
+    offspringTimer = 0;
+    offspringAnimTimer = 0;
     gameRunning = true;
     lastTime = 0;
 }
