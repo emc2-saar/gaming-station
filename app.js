@@ -36,6 +36,7 @@ const games = [
     { folder: "Jump Maker", icon: "🏗️" },
     { folder: "Torwandschiessen", icon: "⚽" },
     { folder: "Labyrinth der Spinnen", icon: "🕷️" },
+    { folder: "Autojump", icon: "🚗" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
