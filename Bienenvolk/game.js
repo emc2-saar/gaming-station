@@ -760,11 +760,29 @@ function startGame() {
 }
 
 // === GAME LOOP ===
+function pollGamepadMenu() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const gp of gamepads) {
+        if (!gp) continue;
+        if ((gp.buttons[0] && gp.buttons[0].pressed) || (gp.buttons[9] && gp.buttons[9].pressed)) {
+            if (gameState === 'start' || gameState === 'gameover') {
+                startGame();
+            }
+            break;
+        }
+    }
+}
+
 function gameLoop(timestamp) {
     if (lastTime === 0) lastTime = timestamp;
     const elapsed = timestamp - lastTime;
     lastTime = timestamp;
     const dt = Math.min(elapsed / (1000 / TARGET_FPS), 3);
+    
+    // Gamepad-Check auch im Menü/GameOver
+    if (gameState === 'start' || gameState === 'gameover') {
+        pollGamepadMenu();
+    }
     
     update(dt);
     draw();
