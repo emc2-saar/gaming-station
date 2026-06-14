@@ -40,6 +40,7 @@ const games = [
     { folder: "Cluster Clash", icon: "🧲" },
     { folder: "Schnatz Jagd", icon: "🧹" },
     { folder: "Fan-Rhythmus", icon: "🥁" },
+    { folder: "Handball Clasics", icon: "🤾" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
