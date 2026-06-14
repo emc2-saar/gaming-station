@@ -39,6 +39,7 @@ const games = [
     { folder: "Autojump", icon: "🚗" },
     { folder: "Cluster Clash", icon: "🧲" },
     { folder: "Schnatz Jagd", icon: "🧹" },
+    { folder: "Fan-Rhythmus", icon: "🥁" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
