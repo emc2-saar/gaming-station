@@ -140,9 +140,6 @@ function update(dt) {
     if (dog.hunger <= 0 && dog.happiness <= 0 && dog.energy <= 0) {
         gameOver();
     }
-
-    // Gamepad abfragen
-    pollGamepad(dt);
 }
 
 function doAction(actionId) {
@@ -665,7 +662,7 @@ function drawStartScreen() {
     // Titel
     ctx.fillStyle = '#f1c40f';
     ctx.font = 'bold 36px sans-serif';
-    ctx.fillText('Mein Hund', canvas.width / 2, 310);
+    ctx.fillText('Wuff Wuff', canvas.width / 2, 310);
 
     // Untertitel
     ctx.fillStyle = '#ecf0f1';
@@ -684,7 +681,7 @@ function drawStartScreen() {
     if (blink) {
         ctx.fillStyle = '#1abc9c';
         ctx.font = 'bold 20px sans-serif';
-        ctx.fillText('Leertaste zum Starten', canvas.width / 2, 550);
+        ctx.fillText('Leertaste / 🅰 zum Starten', canvas.width / 2, 550);
     }
 }
 
@@ -725,6 +722,8 @@ function gameLoop(timestamp) {
     lastTime = timestamp;
     const dt = Math.min(elapsed / (1000 / TARGET_FPS), 3);
 
+    // Gamepad auch im Menü prüfen
+    pollGamepad(dt);
     update(dt);
     draw();
     requestAnimationFrame(gameLoop);
