@@ -439,7 +439,7 @@ function drawStartScreen() {
     ctx.fillStyle = '#feca57';
     ctx.font = 'bold 38px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('🐱 Wollknäuel-Klau 🧶', W / 2, H / 2 - 120);
+    ctx.fillText('🐱 Katzendieb 🧶', W / 2, H / 2 - 120);
     
     // Description
     ctx.fillStyle = '#fff';
@@ -461,7 +461,7 @@ function drawStartScreen() {
     // Start prompt
     ctx.fillStyle = '#feca57';
     ctx.font = 'bold 22px sans-serif';
-    ctx.fillText('Leertaste / Enter zum Starten', W / 2, H / 2 + 170);
+    ctx.fillText('Leertaste / Enter / 🅰 zum Starten', W / 2, H / 2 + 170);
     
     // Draw cute cat
     drawCatIcon(W / 2, H / 2 - 180, 40);
@@ -893,13 +893,18 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Gamepad menu support
+let gpMenuConfirmLast = false;
+
 function checkGamepadMenu() {
     const gp = getGamepadInput();
-    if (gp && gp.start) {
+    if (!gp) return;
+    const confirmPressed = gp.start || gp.grab; // Start oder A-Button
+    if (confirmPressed && !gpMenuConfirmLast) {
         if (gameState === 'start' || gameState === 'gameover') {
             startGame();
         }
     }
+    gpMenuConfirmLast = confirmPressed;
 }
 
 // === MAIN LOOP ===
