@@ -992,7 +992,7 @@ function drawMenu() {
     ctx.fillText('LABYRINTH', canvas.width / 2, canvas.height / 2 - 80);
     ctx.fillStyle = '#800';
     ctx.font = 'bold 28px sans-serif';
-    ctx.fillText('DES SCHRECKENS', canvas.width / 2, canvas.height / 2 - 45);
+    ctx.fillText('DER SPINNEN', canvas.width / 2, canvas.height / 2 - 45);
     
     // Instructions
     ctx.fillStyle = '#888';
@@ -1002,14 +1002,14 @@ function drawMenu() {
     ctx.fillStyle = '#aaa';
     ctx.font = '14px sans-serif';
     ctx.fillText('WASD / Pfeiltasten – Bewegen & Drehen', canvas.width / 2, canvas.height / 2 + 50);
-    ctx.fillText('Gamepad wird unterstützt', canvas.width / 2, canvas.height / 2 + 72);
+    ctx.fillText('🎮 Gamepad: A-Button zum Starten, Stick zum Bewegen', canvas.width / 2, canvas.height / 2 + 72);
     
     // Start prompt
     const blink = Math.sin(Date.now() * 0.004) > 0;
     if (blink) {
         ctx.fillStyle = '#f44';
         ctx.font = 'bold 20px sans-serif';
-        ctx.fillText('[ LEERTASTE / ENTER zum Starten ]', canvas.width / 2, canvas.height / 2 + 120);
+        ctx.fillText('[ LEERTASTE / ENTER / 🅰 zum Starten ]', canvas.width / 2, canvas.height / 2 + 120);
     }
 }
 
@@ -1104,11 +1104,30 @@ function startGame() {
 
 // ============ GAME LOOP ============
 
+function pollGamepadMenu() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const gp of gamepads) {
+        if (gp && gp.connected) {
+            if (gp.buttons[0] && gp.buttons[0].pressed) {
+                if (gameState === STATE_MENU || gameState === STATE_WIN || gameState === STATE_GAMEOVER) {
+                    startGame();
+                }
+            }
+            break;
+        }
+    }
+}
+
 function gameLoop(timestamp) {
     if (lastTime === 0) lastTime = timestamp;
     const elapsed = timestamp - lastTime;
     lastTime = timestamp;
     const dt = Math.min(elapsed / (1000 / TARGET_FPS), 3);
+
+    // Gamepad-Check auch im Menü/Win/GameOver
+    if (gameState === STATE_MENU || gameState === STATE_WIN || gameState === STATE_GAMEOVER) {
+        pollGamepadMenu();
+    }
 
     update(dt);
     draw();
