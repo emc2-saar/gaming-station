@@ -679,7 +679,7 @@ function drawStartScreen() {
     if (blink) {
         ctx.fillStyle = '#ffcc00';
         ctx.font = 'bold 20px sans-serif';
-        ctx.fillText('Leertaste zum Starten', canvas.width / 2, 560);
+        ctx.fillText('Leertaste / 🅰 zum Starten', canvas.width / 2, 560);
     }
 }
 
@@ -721,11 +721,33 @@ function drawGameOverScreen() {
     }
 }
 
+let gpStartLast = false;
+
+function pollGamepadMenu() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const gp of gamepads) {
+        if (!gp) continue;
+        const startPressed = (gp.buttons[0] && gp.buttons[0].pressed) || (gp.buttons[9] && gp.buttons[9].pressed);
+        if (startPressed && !gpStartLast) {
+            if (gameState === 'start' || gameState === 'gameover') {
+                startGame();
+            }
+        }
+        gpStartLast = startPressed;
+        break;
+    }
+}
+
 function gameLoop(timestamp) {
     if (lastTime === 0) lastTime = timestamp;
     const elapsed = timestamp - lastTime;
     lastTime = timestamp;
     const dt = Math.min(elapsed / (1000 / TARGET_FPS), 3);
+
+    // Gamepad-Check auch im Menü/GameOver
+    if (gameState === 'start' || gameState === 'gameover') {
+        pollGamepadMenu();
+    }
 
     update(dt);
     draw();
