@@ -35,6 +35,7 @@ const games = [
     { folder: "Mops Springen", icon: "🐶" },
     { folder: "Jump Maker", icon: "🏗️" },
     { folder: "Torwandschiessen", icon: "⚽" },
+    { folder: "Labyrinth der Spinnen", icon: "🕷️" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
