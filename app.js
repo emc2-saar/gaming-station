@@ -33,6 +33,7 @@ const games = [
     { folder: "Minigolf", icon: "⛳" },
     { folder: "Creeper Pong", icon: "🟩" },
     { folder: "Mops Springen", icon: "🐶" },
+    { folder: "Jump Maker", icon: "🏗️" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
