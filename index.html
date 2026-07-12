@@ -28,6 +28,10 @@
         </div>
         <h1>🎮 KI-Gaming Station</h1>
         <p class="subtitle">Alle Spiele wurden mit KI erstellt – bau dein eigenes!</p>
+        <div class="qr-section">
+            <div class="qr-container" id="qr-code"></div>
+            <span class="qr-label">Teile die Gaming Station!</span>
+        </div>
     </header>
     <main id="game-grid" class="game-grid">
         <!-- Kacheln werden per JS generiert -->
@@ -99,6 +103,24 @@
         <circle cx="910" cy="130" r="3" fill="#b8cce0" opacity="0.6"/>
     </svg>
 
+    <script>
+    // Minimal QR Code generator for the Gaming Station URL
+    (function() {
+        const url = 'https://emc2-saar.github.io/gaming-station/';
+        // Pre-generated QR code as SVG path for the URL
+        const size = 120;
+        const container = document.getElementById('qr-code');
+        // Use a QR code API via an img tag pointing to a data SVG
+        // Generate QR matrix inline (simplified - uses Google Charts API fallback as img)
+        const img = document.createElement('img');
+        img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=' + encodeURIComponent(url) + '&color=1a2744&bgcolor=f5f0e8';
+        img.alt = 'QR-Code zur Gaming Station';
+        img.width = 120;
+        img.height = 120;
+        img.style.borderRadius = '8px';
+        container.appendChild(img);
+    })();
+    </script>
     <script src="app.js"></script>
 </body>
 </html>
