@@ -49,6 +49,7 @@ const games = [
     { folder: "Basketball Wurf", icon: "🏀" },
     { folder: "Bienenvolk", icon: "🐝" },
     { folder: "go-car", icon: "🏎️" },
+    { folder: "Hoverboard Rush", icon: "🛹" },
     // Weitere Spiele hier eintragen, z.B.:
     // { folder: "Tetris", icon: "🧱" },
 ];
